@@ -4,8 +4,14 @@ on:
   push:
     branches:
       - main
-      - develop
+    paths-ignore:
+      - "**.md"
+
   pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "**.md"
 
 jobs:
 
@@ -21,29 +27,31 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
 
-      - name: Install dependencies
+      - name: Upgrade pip
         run: |
           python -m pip install --upgrade pip
+
+      - name: Install test dependencies
+        run: |
           pip install pytest pytest-asyncio anyio httpx
 
-      - name: Build contracts
+      - name: Build local packages
         run: |
-          pip install build
-          cd rag-platform-contracts
-          python -m build
-          cd ..
-          cp rag-platform-contracts/dist/*.whl packages/
+          python -m pip install build
 
-      - name: Install packages
+          python -m build rag-platform-contracts
+          python -m build rag_platform_observability
+
+      - name: Install local packages
         run: |
-          pip install packages/rag_platform_contracts-*.whl
-          pip install packages/rag_platform_observability-*.whl
-          pip install ./rag-platform-orchestrator
+          pip install rag-platform-contracts/dist/*.whl
+          pip install rag_platform_observability/dist/*.whl
 
       - name: Run unit tests
         run: |
-          pytest tests/unit/ -v
+          python -m pytest tests/unit/ -v
 
 
   integration-tests:
