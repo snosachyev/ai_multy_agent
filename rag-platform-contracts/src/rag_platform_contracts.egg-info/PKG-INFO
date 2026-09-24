@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: rag-platform-contracts
+Version: 1.0.0
+Summary: Shared contracts for RAG Platform
+Requires-Python: >=3.11
+Requires-Dist: pydantic<3,>=2.8
