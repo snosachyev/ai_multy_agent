@@ -1,0 +1,56 @@
+name: Evaluation
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Evaluation mode"
+        required: true
+        default: "smoke"
+        type: choice
+        options:
+          - smoke
+          - full
+
+jobs:
+
+  orchestrator:
+    name: Orchestrator evaluation
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build contracts
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+          cd rag-platform-contracts
+          python -m build
+          cp dist/*.whl ../packages/
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install psycopg[binary]
+
+      - name: Run evaluation
+        run: |
+          python -m evaluation.orchestrator.run_evaluation \
+            --mode "${{ inputs.mode }}" \
+            --no-db
+
+      - name: Upload evaluation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: orchestrator-evaluation-${{ inputs.mode }}
+          path: evaluation/orchestrator/reports/
+

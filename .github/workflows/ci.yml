@@ -1,0 +1,158 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+  pull_request:
+
+jobs:
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pytest pytest-asyncio httpx
+
+      - name: Run unit tests
+        run: |
+          python -m pytest tests/unit -v
+
+
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install pytest pytest-asyncio httpx
+
+      - name: Run integration tests
+        run: |
+          python -m pytest tests/integration -v
+
+
+  e2e:
+    name: E2E smoke
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build contracts
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+          cd rag-platform-contracts
+          python -m build
+          cp dist/*.whl ../packages/
+
+      - name: Start orchestrator
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.load-test.yml \
+            up -d \
+            --build \
+            orchestrator \
+            fake-agents
+
+      - name: Show containers
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.load-test.yml \
+            ps
+
+      - name: Wait for orchestrator
+        run: |
+          python - <<'PY'
+          import time
+          import urllib.request
+
+          url = "http://127.0.0.1:8000/health"
+          deadline = time.time() + 180
+
+          while time.time() < deadline:
+              try:
+                  response = urllib.request.urlopen(
+                      url,
+                      timeout=3,
+                  )
+
+                  if response.status == 200:
+                      print("Orchestrator is ready")
+                      break
+
+              except Exception as exc:
+                  print(f"Waiting: {exc}")
+
+              time.sleep(5)
+
+          else:
+              raise RuntimeError(
+                  "Orchestrator did not become ready"
+              )
+          PY
+
+      - name: Install test dependencies
+        run: |
+          pip install pytest pytest-asyncio httpx
+
+      - name: Run E2E smoke
+        env:
+          DIRECTOR_SERVICE_URL: http://127.0.0.1:9000
+          RESEARCHER_SERVICE_URL: http://127.0.0.1:9000
+          ANALYST_SERVICE_URL: http://127.0.0.1:9000
+          FINALIZER_SERVICE_URL: http://127.0.0.1:9000
+
+        run: |
+          python -m pytest \
+            tests/e2e/orchestrator/smoke \
+            -v
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.load-test.yml \
+            logs \
+            --no-color
+
+      - name: Shutdown
+        if: always()
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.load-test.yml \
+            down \
+            -v

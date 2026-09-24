@@ -1,0 +1,140 @@
+name: Load Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      users:
+        description: "Number of concurrent users"
+        required: true
+        default: "5"
+
+      spawn_rate:
+        description: "Users spawned per second"
+        required: true
+        default: "1"
+
+      duration:
+        description: "Test duration"
+        required: true
+        default: "30s"
+
+
+jobs:
+
+  load-test:
+    name: Orchestrator load test
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+      - name: Build contracts
+        run: |
+          python -m pip install --upgrade pip
+          pip install build
+
+          cd rag-platform-contracts
+          python -m build
+          cp dist/*.whl ../packages/
+
+
+      - name: Start load-test environment
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.load-test.yml \
+            up -d \
+            --build \
+            orchestrator \
+            fake-agents
+
+
+      - name: Show containers
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.load-test.yml \
+            ps
+
+
+      - name: Wait for orchestrator
+        run: |
+          python - <<'PY'
+          import time
+          import urllib.request
+
+          url = "http://127.0.0.1:8000/health"
+          deadline = time.time() + 180
+
+          while time.time() < deadline:
+              try:
+                  response = urllib.request.urlopen(
+                      url,
+                      timeout=3,
+                  )
+
+                  if response.status == 200:
+                      print("Orchestrator is ready")
+                      break
+
+              except Exception as exc:
+                  print(f"Waiting: {exc}")
+
+              time.sleep(5)
+
+          else:
+              raise RuntimeError(
+                  "Orchestrator did not become ready"
+              )
+          PY
+
+
+      - name: Install Locust
+        run: |
+          pip install locust
+
+
+      - name: Run load test
+        run: |
+          locust \
+            -f tests/load/orchestrator/locustfile.py \
+            --host http://127.0.0.1:8000 \
+            --headless \
+            --users "${{ inputs.users }}" \
+            --spawn-rate "${{ inputs.spawn_rate }}" \
+            --run-time "${{ inputs.duration }}" \
+            --csv=load-test
+
+
+      - name: Upload Locust results
+        uses: actions/upload-artifact@v4
+        with:
+          name: orchestrator-load-test
+          path: |
+            load-test_stats.csv
+            load-test_stats_history.csv
+            load-test_failures.csv
+
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.load-test.yml \
+            logs \
+            --no-color
+
+
+      - name: Shutdown
+        if: always()
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.load-test.yml \
+            down \
+            -v
+
