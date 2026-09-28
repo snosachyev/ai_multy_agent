@@ -1,0 +1,39 @@
+# === Ваши исключения ===
+*.tar
+*.gz
+dist/
+
+# === Сборка и распространение Python ===
+build/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+downloads/
+
+# === Кэш Python и байт-код ===
+__pycache__/
+*.py[cod]
+*$py.class
+
+# === Виртуальные окружения (Обязательно к исключению) ===
+.venv/
+venv/
+ENV/
+env/
+
+# === Файлы настроек среды разработки (IDE) ===
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# === Логи, базы данных и системные файлы ===
+*.log
+*.db
+*.sqlite3
+.DS_Store
+Thumbs.db
