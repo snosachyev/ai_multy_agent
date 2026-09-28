@@ -4,6 +4,13 @@ from typing import Literal
 from rag_platform_contracts.agents import NextAction
 
 
+class DirectorRequest(BaseModel):
+    user_input: str
+
+    context: dict = Field(
+        default_factory=dict
+    )
+
 class DirectorDecision(BaseModel):
     next_action: Literal[
         "researcher",
