@@ -12,11 +12,7 @@ class DirectorRequest(BaseModel):
     )
 
 class DirectorDecision(BaseModel):
-    next_action: Literal[
-        "researcher",
-        "analyst",
-        "finish"
-    ] = Field(
+    next_action: NextAction = Field(
         description="Следующий шаг системы"
     )
 
