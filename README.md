@@ -32,18 +32,14 @@
     }'
 
 ## Analyst
-    curl -X 'POST'  \
-        'http://127.0.0.1:8003/api/v1/analyst/analyze'     
-        -H 'accept: */*'
-        -H 'Content-Type: application/json'
-        -d '{
-            "context": {
+    curl -X POST "http://127.0.0.1:8003/api/v1/analyst/analyze" -H "accept: */*" -H "Content-Type: application/json" -d '{
+        "context": {
             "workflow_id": "204801b2-0678-4e51-abed-5f4ad42217c4",
             "task": "Analyze the details of task decomposition methods for LLM agents.",
-            "researcher_result": "Task decomposition для LLM агентов включает в себя разбиение сложной задачи на более мелкие и управляемые подзадачи, чтобы эффективно обрабатывать сложные задачи. Этот процесс может осуществляться несколькими способами:\n1. С помощью LLM с простым подсказыванием, например, \"Шаги для XYZ.\\n1.\", \"Какие подзадачи необходимо выполнить для достижения XYZ?\".\n2. С использованием специфических инструкций для задач; например, \"Напишите план рассказа\" для написания романа.\n3. С помощью человеческого ввода.\nВ дополнительном подходе LLM+P (Liu et al. 2023) планирование делегируется внешнему классическому планировщику через промежуточный интерфейсPlanning Domain Definition Language (PDDL)."
-            }, "user_input": "Узнай в документах, что такое task decomposition для LLM агентов. После этого посчитай: если у нас есть задача, которую агент разбивает на 4 подзадачи, и на каждую подзадачу тратится по 3 вызова API, сколько всего вызовов API сделает система?"
-        }
-    '
+            "researcher_result": "Task decomposition для LLM агентов включает в себя разбиение сложной задачи на более мелкие и управляемые подзадачи, чтобы эффективно обрабатывать сложные задачи. Этот процесс может осуществляться несколькими способами:\n1. С помощью LLM с простым подсказыванием, например, \\\"Шаги для XYZ.\\n1.\\\" , \\\"Какие подзадачи необходимо выполнить для достижения XYZ?\\\" .\n2. С использованием специфических инструкций для задач; например, \\\"Напишите план рассказа\\\" для написания романа.\n3. С помощью человеческого ввода.\nВ дополнительном подходе LLM+P (Liu et al. 2023) планирование делегируется внешнему классическому планировщику через промежуточный интерфейсPlanning Domain Definition Language (PDDL)."
+        },
+        "user_input": "Узнай в документах, что такое task decomposition для LLM агентов. После этого посчитай: если у нас есть задача, которую агент разбивает на 4 подзадачи, и на каждую подзадачу тратится по 3 вызова API, сколько всего вызовов API сделает система?"
+    }'
 
 ## Director
     curl -X 'POST' \
@@ -79,6 +75,9 @@
 
 
 # tests
+# установка зависимостей
+    pip install  --force-reinstall --find-links=packages/   packages/rag_platform_finalizer-1.0.0-py3-none-any.whl
+# прокидываем системные переменные
     export RAG_SPLITS_PATH="$(pwd)/data/rag-platform-researcher/data/my_splits.pkl"
 
 ## orcetration
@@ -119,3 +118,20 @@
     git add .
     git commit -m "ci: add github actions pipeline"
     git push
+
+
+# Чтобы код подсвечивался прямо в вашей IDE на компьютере (без запуска Docker)
+# Активируйте ваше локальное venv и выполните из корня проекта:
+pip install -e ./packages/rag_platform_contracts
+pip install -e ./packages/rag_platform_analyst
+
+
+# ollama server
+## Посмотерть список моделей
+    docker exec -it ai_multy_agent-ollama-service-1 ollama list
+    или
+    curl http://localhost:11434/api/tags
+## Скачать нужную модель
+    docker exec -it ai_multy_agent-ollama-service-1 ollama run qwen2.5:7b
+
+
