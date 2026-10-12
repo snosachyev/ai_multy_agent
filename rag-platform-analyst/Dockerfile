@@ -13,7 +13,7 @@ COPY rag-platform-analyst/src ./src
 # Мы используем "." потому что pyproject.toml лежит прямо в /app
 RUN pip install --no-cache-dir /tmp/packages/rag_platform_contracts-1.0.0-py3-none-any.whl \
     /tmp/packages/rag_platform_llm-1.0.0-py3-none-any.whl && \
-    pip install -e .
+    pip install -e .  --no-deps
 
 # 4. Запускаем uvicorn, указывая следить за изменениями в рабочей директории /app/src
 CMD ["sh", "-c", "uvicorn rag_platform_analyst.main:app --host 0.0.0.0 --port $PORT --reload --reload-dir /app"]
