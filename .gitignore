@@ -11,6 +11,7 @@ eggs/
 *.egg
 downloads/
 
+
 # === Кэш Python и байт-код ===
 __pycache__/
 *.py[cod]
