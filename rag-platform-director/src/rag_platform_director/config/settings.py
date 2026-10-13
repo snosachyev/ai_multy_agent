@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     service_name: str = "director"
     port: int
 
+    # Если значений нет в окружении, Pydantic потребует их указать
+    provider: str  # "ollama" или "openai"
+    llm_model: str  # "qwen2.5:7b" или "gpt-4o-mini"
+    
     # Ключи и урлы делаем опциональными, так как они зависят от провайдера
     openai_api_key: str | None = None
     ollama_base_url: str | None = None
