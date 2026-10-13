@@ -122,8 +122,25 @@
 
 # Чтобы код подсвечивался прямо в вашей IDE на компьютере (без запуска Docker)
 # Активируйте ваше локальное venv и выполните из корня проекта:
-pip install -e ./packages/rag_platform_contracts
-pip install -e ./packages/rag_platform_analyst
+## Полная очистка от старых пакетов
+    ```bash
+        # Удаляем старые статические версии из site-packages
+        pip uninstall -y rag-platform-analyst rag-platform-contracts
+        # Очищаем кэш сборки в папках пакетов
+        cd rag-platform-analyst && rm -rf build dist *.egg-info src/*.egg-info && cd ..
+        cd rag-platform-contracts && rm -rf build dist *.egg-info src/*.egg-info && cd ..
+    ```
+## Корректный перезапуск Editable-установки
+    ```bash 
+        pip install -e ./rag-platform-contracts
+        pip install -e ./rag-platform-analyst
+    ```
+
+## Настройка IDE (Сброс кэша)
+может потребоваться для сброска кэша
+`Ctrl+Shift+P -> Developer: Reload Window`
+
+
 
 
 # ollama server
