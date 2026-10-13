@@ -43,7 +43,7 @@
 
 ## Director
     curl -X 'POST' \
-    'http://0.0.0.0:8001/v1/decide' \
+    'http://0.0.0.0:8001/api/v1/director/decide' \
     -H 'accept: application/json' \
     -H 'Content-Type: application/json' \
     -d '{
