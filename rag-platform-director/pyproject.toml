@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rag-platform-director"
+version = "1.0.0"
+description = "Director Agent"
+requires-python = ">=3.11"
+
+dependencies = [
+    "rag-platform-contracts==1.0.0",
+    "langchain-core",
+    "langchain-ollama",
+    "langchain-openai",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
