@@ -3,6 +3,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
 from rag_platform_contracts.analyst import AnalysisRequest, AnalysisResponse
 
+
 class AnalystService:
     """Сервис для проведения аналитических расчетов и логического анализа с помощью LLM."""
 
