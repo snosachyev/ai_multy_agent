@@ -12,12 +12,12 @@ router = APIRouter()
 
 
 @router.post(
-    "/analyze",
+    "/decide",
     response_model=DirectorDecision,
 )
-async def analyze(
+async def decide(
     request: DirectorRequest,
     service: DirectorService = Depends(get_director_service),
 ) -> DirectorDecision:
-    """Эндпоинт для запуска процесса анализа."""
+    """Эндпоинт для запуска процесса выбора агента."""
     return await service.decide(request)
