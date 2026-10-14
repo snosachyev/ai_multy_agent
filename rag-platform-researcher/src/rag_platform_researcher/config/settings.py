@@ -1,11 +1,11 @@
-"""Analyst serivce config"""
+"""Researcher serivce config"""
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Analyst service config"""
+    """Researcher service config"""
     environment: str = "production"
-    service_name: str = "analyst"
+    service_name: str = "researcher"
     port: int
 
     # Если значений нет в окружении, Pydantic потребует их указать
