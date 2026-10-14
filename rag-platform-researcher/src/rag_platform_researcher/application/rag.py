@@ -4,6 +4,8 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
 
+from chromadb.errors import ChromaError
+
 from rag_platform_contracts.researcher import (
     RAGResult
 )
@@ -21,6 +23,7 @@ from rag_platform_researcher.application.metrics import (
     RAG_LLM_DURATION,
 )
 from rag_platform_researcher.config.settings import settings
+from rag_platform_researcher.exceptions import ResearcherBaseError
 
 from rag_platform_observability.observability import get_logger
 
@@ -350,13 +353,13 @@ class RAGService:
             )
 
 
-        except Exception:
+        except (ChromaError, ConnectionError, IOError) as e:
+            # Перехватываем технические проблемы инфраструктуры
             RAG_REQUEST_ERRORS_TOTAL.labels(
                 service=SERVICE_NAME
             ).inc()
 
-            raise
-
+            raise ResearcherBaseError(f"Ошибка при работе с векторным хранилищем: {e}") from e
 
         finally:
 
