@@ -13,6 +13,8 @@ dependencies = [
     "langchain-core",
     "langchain-ollama",
     "langchain-openai",
+    "prometheus-client",
+    "psycopg[binary]",
 ]
 
 [tool.setuptools.packages.find]
