@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     ollama_base_url: str | None = None
     temperature: float = 0.0
 
+    # вывод логов
+    debug_rag: bool = False
+
     model_config = SettingsConfigDict(
         extra="ignore",
         env_file_encoding="utf-8"
