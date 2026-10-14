@@ -12,6 +12,7 @@ COPY rag-platform-analyst/src ./src
 # 3. Сначала ставим контракт из wheel, а затем аналитик в режиме редактирования (-e .)
 # Мы используем "." потому что pyproject.toml лежит прямо в /app
 RUN pip install --no-cache-dir /tmp/packages/rag_platform_contracts-1.0.0-py3-none-any.whl \
+    /tmp/packages/rag_platform_observability-1.0.0-py3-none-any.whl \
     /tmp/packages/rag_platform_llm-1.0.0-py3-none-any.whl && \
     pip install -e .  --no-deps
 
