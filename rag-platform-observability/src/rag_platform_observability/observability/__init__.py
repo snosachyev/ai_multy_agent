@@ -1,4 +1,4 @@
-from rag_platform.observability.logging import (
+from rag_platform_observability.observability.logging import (
     configure_logging,
     get_logger,
 )
