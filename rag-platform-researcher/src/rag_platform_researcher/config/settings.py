@@ -1,5 +1,11 @@
 """Researcher serivce config"""
+import os
+from pathlib import Path
+from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# settings.py лежит в config/, значит .parent.parent — это корень пакета
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
 
 class Settings(BaseSettings):
@@ -19,6 +25,18 @@ class Settings(BaseSettings):
 
     # вывод логов
     debug_rag: bool = False
+
+    splits_file_name: str = "chunked.pkl"
+
+    # В Docker сюда прилетит "/data" из docker-compose.yaml. 
+    # Локально на ПК значение по умолчанию будет "data" (относительный путь).
+    data_dir: str = "/data"
+
+    @computed_field
+    def splits_path(self) -> Path:
+        """Возвращает чистый абсолютный путь к файлу сплитов."""
+        full_path = os.path.join(self.data_dir, self.splits_file_name)
+        return Path(full_path)
 
     model_config = SettingsConfigDict(
         extra="ignore",
