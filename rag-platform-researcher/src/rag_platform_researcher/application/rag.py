@@ -1,4 +1,4 @@
-"""Поисковик хранилища"""
+"""Rag сервис"""
 import time
 
 from abc import ABC, abstractmethod
