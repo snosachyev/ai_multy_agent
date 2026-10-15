@@ -24,15 +24,21 @@ _vector_store_instance: Optional[ChromaVectorStore] = None
 
 
 def init_vector_store() -> None:
-    """Инициализирует векторное хранилище один раз при старте приложения.
-    
-    Вызывается внутри lifespan в main.py.
-    """
+    """Инициализирует векторное хранилище один раз при старте приложения."""
     global _vector_store_instance
-    if _vector_store_instance is None:
-        # Укажите правильный путь к вашему pickle-файлу из настроек
-        splits_path = getattr(settings, "splits_path", "/app/data/my_splits.pkl")
-        _vector_store_instance = ChromaVectorStore(splits_path=splits_path)
+    if _vector_store_instance is not None:
+        return
+
+    # Проверяем физическое наличие файла на диске перед тем как читать его
+    if not settings.splits_path.exists():
+        raise FileNotFoundError(
+            f"❌ КРИТИЧЕСКАЯ ОШИБКА: Файл векторных сплитов не найден по пути: "
+            f"{settings.splits_path.absolute()}. "
+            f"Проверьте монтирование volumes в Docker или наличие файла локально."
+        )
+
+    _vector_store_instance = ChromaVectorStore(splits_path=str(settings.splits_path))
+
 
 def get_llm() -> BaseChatModel:
     """Зависимость для создания инстанса LLM."""
