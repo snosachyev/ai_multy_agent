@@ -39,3 +39,7 @@ env/
 .DS_Store
 Thumbs.db
 .env
+
+# Игнорируем локальные данные и кэши
+**/data/*.pkl
+**/data/*.bin
