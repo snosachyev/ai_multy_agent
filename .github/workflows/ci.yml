@@ -39,7 +39,7 @@ jobs:
 
       - name: Build observability
         run: |
-          python -m build rag_platform_observability
+          python -m build rag-platform-observability
 
       - name: Install contracts
         run: |
@@ -47,7 +47,7 @@ jobs:
 
       - name: Install observability
         run: |
-          pip install rag_platform_observability/dist/*.whl
+          pip install rag-platform-observability/dist/*.whl
 
       - name: Install test dependencies
         run: |
