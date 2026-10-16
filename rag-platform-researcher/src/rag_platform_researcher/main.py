@@ -10,7 +10,7 @@ from langchain_core.language_models import BaseChatModel
 from rag_platform_researcher.config.settings import settings
 from rag_platform_researcher.dependencies import (
     get_llm,
-    init_vector_store,
+    init_vector_store
 )
 from rag_platform_researcher.presentation.router import router
 
@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
     # 2. Инициализируем и прогреваем Chroma Vector Store в памяти один раз
     try:
         print("⏳ Загрузка эмбеддингов и развертывание Chroma в памяти...")
-        init_vector_store()
+        init_vector_store(app)
         print("✅ Векторная база Chroma успешно инициализирована!")
     except Exception as e:
         print(f"❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось поднять Chroma: {e}")

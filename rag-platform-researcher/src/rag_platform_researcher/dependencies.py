@@ -1,6 +1,5 @@
 """Файл dependencies.py для микросервиса Researcher"""
-from typing import Optional
-from fastapi import Depends
+from fastapi import Depends, Request, FastAPI
 from langchain_core.language_models import BaseChatModel
 
 # 1. Ваши общие фабрики
@@ -19,16 +18,11 @@ from rag_platform_researcher.application.researcher import ResearcherService
 from rag_platform_researcher.infrastructure.rag.chroma import ChromaVectorStore
 from rag_platform_researcher.infrastructure.rag.query_generator import LLMQueryGenerator
 
-# Глобальная переменная для хранения единственного экземпляра базы в памяти
-_vector_store_instance: Optional[ChromaVectorStore] = None
 
-
-def init_vector_store() -> None:
-    """Инициализирует векторное хранилище один раз при старте приложения."""
-    global _vector_store_instance
-    if _vector_store_instance is not None:
-        return
-
+def init_vector_store(app: FastAPI) -> None:
+    """Инициализирует векторное хранилище один раз при старте приложения и сохраняет в state.
+    Вызывается внутри lifespan в main.py.
+    """
     # Проверяем физическое наличие файла на диске перед тем как читать его
     if not settings.splits_path.exists():
         raise FileNotFoundError(
@@ -37,7 +31,17 @@ def init_vector_store() -> None:
             f"Проверьте монтирование volumes в Docker или наличие файла локально."
         )
 
-    _vector_store_instance = ChromaVectorStore(splits_path=str(settings.splits_path))
+    # Сохраняем экземпляр базы напрямую в стейт переданного FastAPI-приложения
+    app.state.vector_store = ChromaVectorStore(splits_path=str(settings.splits_path))
+
+
+def get_vector_store(request: Request) -> VectorStorePort:
+    """Достает созданную базу напрямую из стейта запущенного FastAPI приложения.
+    
+    Отрабатывает мгновенно, возвращая уже готовую ссылку из памяти.
+    """
+    # Гарантирует продакшен-изоляцию: объект живет ровно столько, сколько живет инстанс приложения
+    return request.app.state.vector_store
 
 
 def get_llm() -> BaseChatModel:
@@ -51,16 +55,6 @@ def get_llm() -> BaseChatModel:
             api_key=settings.openai_api_key,
         )
     )
-
-
-def get_vector_store() -> VectorStorePort:
-    """Зависимость для получения уже инициализированного векторного хранилища.
-    
-    Отрабатывает мгновенно, не пересоздавая базу в памяти на каждый запрос.
-    """
-    if _vector_store_instance is None:
-        raise RuntimeError("Vector store is not initialized. Call init_vector_store() on startup.")
-    return _vector_store_instance
 
 
 def get_query_generator(llm: BaseChatModel = Depends(get_llm)) -> QueryGeneratorPort:
