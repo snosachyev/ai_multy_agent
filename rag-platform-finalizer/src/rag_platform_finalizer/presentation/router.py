@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.post(
     "/finalizer",
-    response_model=FinalizerService,
+    response_model=FinalizationResponse,
 )
 async def finalize(
     request: FinalizationRequest,
