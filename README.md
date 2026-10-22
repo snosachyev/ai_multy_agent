@@ -141,6 +141,10 @@
 `Ctrl+Shift+P -> Developer: Reload Window`
 
 
+## requirements для локального запуска и для ci
+pip list --not-required --format=freeze | grep -v "rag-platform-" > requirements.txt
+
+
 
 
 # ollama server

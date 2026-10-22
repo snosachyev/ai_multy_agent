@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -32,27 +33,30 @@ jobs:
         run: |
           pip install build
 
-      # 1. Фильтруем requirements.txt и ставим все внешние зависимости (Pydantic, Langgraph и т.д.)
-      - name: Install external dependencies
-        run: |
-          sed '/rag-platform-/d' requirements.txt > ci_requirements.txt
-          pip install -r ci_requirements.txt
-
-      # 2. Собираем свежие wheel-пакеты из исходников репозитория
-      - name: Build local packages
+      # 1. Собираем ваши локальные пакеты монорепозитория
+      - name: Build contracts
         run: |
           python -m build rag-platform-contracts
-          python -m build rag-platform-observability
-          python -m build rag-platform-orchestrator
 
-      # 3. Устанавливаем их поверх внешних зависимостей
-      - name: Install local packages
+      - name: Build observability
+        run: |
+          python -m build rag-platform-observability
+
+      # 2. Устанавливаем локальные пакеты из wheel-файлов
+      - name: Install contracts
         run: |
           pip install rag-platform-contracts/dist/*.whl
-          pip install rag-platform-observability/dist/*.whl
-          pip install rag-platform-orchestrator/dist/*.whl
 
-      # 4. Запуск тестов
+      - name: Install observability
+        run: |
+          pip install rag-platform-observability/dist/*.whl
+
+      # 3. Устанавливаем все внешние библиотеки (pydantic-settings, pytest, httpx и др.) из общего файла
+      - name: Install project and test dependencies
+        run: |
+          pip install -r requirements.txt
+
+      # 4. Запускаем тесты — теперь все импорты оркестратора гарантированно сработают
       - name: Run unit tests
         run: |
           python -m pytest tests/unit/ -v
