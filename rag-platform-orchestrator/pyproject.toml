@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rag-platform-orchestrator"
+version = "1.0.0"
+description = "Orchestrator"
+requires-python = ">=3.11"
+
+dependencies = [
+    "rag-platform-contracts==1.0.0",
+    "langgraph",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
