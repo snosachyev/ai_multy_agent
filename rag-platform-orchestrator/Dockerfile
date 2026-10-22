@@ -1,4 +1,3 @@
-# FROM python:3.12-slim
 FROM rag-python-base:latest
 
 WORKDIR /app
@@ -15,8 +14,6 @@ COPY rag-platform-orchestrator/src ./src
 RUN pip install --no-cache-dir /tmp/packages/rag_platform_contracts-1.0.0-py3-none-any.whl \
     /tmp/packages/rag_platform_observability-1.0.0-py3-none-any.whl \
     /tmp/packages/rag_platform_llm-1.0.0-py3-none-any.whl && \
-    pip install -e . 
-    #--no-deps
-
+    pip install -e .
 # 4. Запускаем uvicorn, указывая следить за изменениями в рабочей директории /app/src
 CMD ["sh", "-c", "uvicorn rag_platform_orchestrator.main:app --host 0.0.0.0 --port $PORT --reload --reload-dir /app"]
