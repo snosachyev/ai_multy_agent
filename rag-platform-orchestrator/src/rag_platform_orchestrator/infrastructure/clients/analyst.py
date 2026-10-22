@@ -53,11 +53,11 @@ class AnalystClient(ServiceClient):
 
         except httpx.ReadTimeout:
             if settings.debug_rag:
-                logger.debug(f"[RESEARCHER CLIENT] ReadTimeout after \
+                logger.debug(f"[ANALYST CLIENT] ReadTimeout after \
                                 {time.monotonic() - start:.1f}s")
             raise
-
-        response.raise_for_status()
+        else:
+            response.raise_for_status()
 
         analyst_data = AnalysisResponse.model_validate(
             response.json()
