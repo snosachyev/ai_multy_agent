@@ -55,8 +55,9 @@ class ResearcherClient(ServiceClient):
                 logger.debug(f"[RESEARCHER CLIENT] ReadTimeout after \
                              {time.monotonic() - start:.1f}s")
             raise
+        else:
+            response.raise_for_status()
 
-        response.raise_for_status()
         research_data = ResearchResponse.model_validate(response.json())
 
         return AgentExecutionResponse(
