@@ -1,12 +1,22 @@
 """Director client"""
+import time
+import httpx
+
 from rag_platform_orchestrator.infrastructure.http import (
     ServiceClient,
 )
+
+from rag_platform_orchestrator.config.settings import settings
 
 from rag_platform_contracts.director import (
     DirectorDecision,
     DirectorRequest
 )
+
+from rag_platform_observability.observability import get_logger
+
+
+logger = get_logger(__name__)
 
 
 class DirectorClient(ServiceClient):
@@ -53,12 +63,24 @@ class DirectorClient(ServiceClient):
                 'last_error': last_error,
             },
         )
-        response = await self.client.post(
-            f"{self.base_url}/api/v1/director/decide",
-            json=request.model_dump(),
-        )
+        start = time.monotonic()
 
-        response.raise_for_status()
+        if settings.debug_rag:
+            logger.debug(f"[DIRECTOR CLIENT] POST {self.base_url}/... user_input={user_input!r}")
+
+        try:
+            response = await self.client.post(
+                f"{self.base_url}/api/v1/director/decide",
+                json=request.model_dump(),
+            )
+        except httpx.ReadTimeout:
+            if settings.debug_rag:
+                logger.debug(f"[DIRECTOR CLIENT] ReadTimeout after \
+                                {time.monotonic() - start:.1f}s")
+            raise
+        else:
+            response.raise_for_status()
+
 
         return DirectorDecision.model_validate(
             response.json()
