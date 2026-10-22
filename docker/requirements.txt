@@ -1,0 +1,15 @@
+# Тяжелые компилируемые компоненты и ядро RAG
+langchain-core
+langchain-huggingface
+pydantic>=2.0,<3.0
+pydantic-settings
+
+# Базовый HTTP-стек, общий для всех агентов
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+
+prometheus-client
+psycopg[binary]
+
+langchain-chroma
+langchain-huggingface
