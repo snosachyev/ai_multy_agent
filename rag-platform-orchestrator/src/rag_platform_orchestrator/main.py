@@ -12,6 +12,11 @@ from rag_platform_orchestrator.presentation.dependencies import (
     get_workflow,
 )
 
+from rag_platform_observability.observability import configure_logging
+
+
+configure_logging()
+
 
 @asynccontextmanager
 async def lifespan(fastapi_app: FastAPI):
