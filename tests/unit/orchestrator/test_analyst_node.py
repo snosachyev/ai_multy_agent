@@ -101,7 +101,6 @@ async def test_analyst_node_receives_research_result(_workflow_fixture, make_sta
 
     state = make_state(
         next_action="analyst",
-        iteration=0,
         max_iterations=5,
     )
     await _workflow_fixture.analyst_node(state)
