@@ -1,6 +1,6 @@
 """Общие фикстуры и инструменты для тестирования оркестратора воркфлоу."""
 
-from unittest.mock import Mock
+from unittest.mock import Mock, AsyncMock
 
 import pytest
 
@@ -43,15 +43,12 @@ def make_state():
 
 @pytest.fixture
 def workflow_fixture():
-    """Фикстура для инициализации экземпляра Workflow с заглушками (Mock) вместо реальных агентов.
-
-    Returns:
-        Workflow: Тестируемый объект оркестратора с моками агентов.
-    """
-    director = Mock()
-    researcher = Mock()
-    analyst = Mock()
-    finalizer = Mock()
+    """Фикстура воркфлоу с правильными асинхронными моками."""
+    # Все агенты ДОЛЖНЫ быть AsyncMock, иначе граф упадет на await
+    director = AsyncMock()
+    researcher = AsyncMock()
+    analyst = AsyncMock()
+    finalizer = AsyncMock()
 
     return Workflow(
         director=director,
