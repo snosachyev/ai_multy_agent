@@ -4,33 +4,11 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from rag_platform_orchestrator.application.workflow import Workflow
-
-
-@pytest.fixture
-def _workflow_fixture():
-    """Фикстура для инициализации экземпляра Workflow с заглушками (Mock) вместо реальных агентов.
-
-    Returns:
-        Workflow: Тестируемый объект оркестратора с моками агентов.
-    """
-    director = Mock()
-    researcher = Mock()
-    analyst = Mock()
-    finalizer = Mock()
-
-    return Workflow(
-        director=director,
-        researcher=researcher,
-        analyst=analyst,
-        finalizer=finalizer,
-    )
-
 
 @pytest.mark.anyio
-async def test_analyst_node_success(_workflow_fixture, make_state):
+async def test_analyst_node_success(workflow_fixture, make_state):
     """Проверяет успешное выполнение задачи аналитиком и корректное обновление состояния."""
-    _workflow_fixture.analyst.execute = AsyncMock(
+    workflow_fixture.analyst.execute = AsyncMock(
         return_value=Mock(
             success=True,
             result={"result": "Анализ найденной информации."},
@@ -44,7 +22,7 @@ async def test_analyst_node_success(_workflow_fixture, make_state):
         max_iterations=5,
     )
 
-    result = await _workflow_fixture.analyst_node(state)
+    result = await workflow_fixture.analyst_node(state)
 
     assert result["analysis_result"] == "Анализ найденной информации."
 
@@ -59,9 +37,9 @@ async def test_analyst_node_success(_workflow_fixture, make_state):
 
 
 @pytest.mark.anyio
-async def test_analyst_node_failure(_workflow_fixture, make_state):
+async def test_analyst_node_failure(workflow_fixture, make_state):
     """Проверяет обработку ошибок (RuntimeError) при падении агента-аналитика."""
-    _workflow_fixture.analyst.execute = AsyncMock(
+    workflow_fixture.analyst.execute = AsyncMock(
         side_effect=RuntimeError("Analyst unavailable")
     )
 
@@ -71,7 +49,7 @@ async def test_analyst_node_failure(_workflow_fixture, make_state):
         max_iterations=5,
     )
 
-    result = await _workflow_fixture.analyst_node(state)
+    result = await workflow_fixture.analyst_node(state)
 
     assert result["last_action"] == "analyst"
     assert result["last_agent_success"] is False
@@ -89,9 +67,9 @@ async def test_analyst_node_failure(_workflow_fixture, make_state):
 
 
 @pytest.mark.anyio
-async def test_analyst_node_receives_research_result(_workflow_fixture, make_state):
+async def test_analyst_node_receives_research_result(workflow_fixture, make_state):
     """Проверяет, что аналитику на вход передаются правильные аргументы из текущего состояния."""
-    _workflow_fixture.analyst.execute = AsyncMock(
+    workflow_fixture.analyst.execute = AsyncMock(
         return_value=Mock(
             success=True,
             result={"result": "Анализ"},
@@ -103,9 +81,9 @@ async def test_analyst_node_receives_research_result(_workflow_fixture, make_sta
         next_action="analyst",
         max_iterations=5,
     )
-    await _workflow_fixture.analyst_node(state)
+    await workflow_fixture.analyst_node(state)
 
-    _workflow_fixture.analyst.execute.assert_called_once_with(
+    workflow_fixture.analyst.execute.assert_called_once_with(
         user_input="Что такое RAG?",
         workflow_id="test-workflow",
         task="Проанализируй найденную информацию",
