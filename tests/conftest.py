@@ -1,6 +1,6 @@
 """Общие фикстуры и инструменты для тестирования оркестратора воркфлоу."""
 
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock, AsyncMock, MagicMock
 
 import pytest
 
@@ -41,8 +41,8 @@ def make_state():
     return _make_state
 
 
-@pytest.fixture
-def workflow_fixture():
+@pytest.fixture(name="workflow_fixture")
+def _workflow_fixture_impl():
     """Фикстура воркфлоу с правильными асинхронными моками."""
     # Все агенты ДОЛЖНЫ быть AsyncMock, иначе граф упадет на await
     director = AsyncMock()
@@ -56,3 +56,38 @@ def workflow_fixture():
         analyst=analyst,
         finalizer=finalizer,
     )
+
+
+@pytest.fixture
+def setup_happy_path():
+    """Фикстура-помощник для быстрой настройки успешного прохождения всех агентов."""
+    def _setup(workflow_fixture):
+        # Настройка директора
+        workflow_fixture.director.decide.side_effect = [
+            MagicMock(next_action="researcher", task="Найди информацию о RAG"),
+            MagicMock(next_action="analyst", task="Проанализируй информацию"),
+            MagicMock(next_action="finish", task=None),
+        ]
+
+        # Настройка исследователя
+        researcher_response = Mock(
+            success=True,
+            task="Найди информацию о RAG",
+            error=None,
+            result={"success": True, "result": {"answer": "Результат исследования."}}
+        )
+        workflow_fixture.researcher.execute.return_value = researcher_response
+
+        # Настройка аналитика
+        analyst_response = Mock(
+            success=True,
+            task="Проанализируй информацию",
+            error=None,
+            result={"success": True, "result": {"answer": "Результат анализа."}}
+        )
+        workflow_fixture.analyst.execute.return_value = analyst_response
+
+        # Настройка финализатора
+        workflow_fixture.finalizer.execute.return_value = "Финальный ответ."
+
+    return _setup
