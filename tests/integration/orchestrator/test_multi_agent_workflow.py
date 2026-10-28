@@ -85,36 +85,10 @@ async def test_researcher_to_analyst_to_finalizer(workflow_fixture):
 
 
 @pytest.mark.anyio
-async def test_research_result_is_passed_to_analyst(workflow_fixture):
+async def test_research_result_is_passed_to_analyst(workflow_fixture, setup_happy_path):
     """Проверяет, что результаты работы исследователя корректно 
     передаются аналитику в качестве аргументов."""
-    workflow_fixture.director.decide.side_effect = [
-        MagicMock(next_action="researcher", task="Найди информацию о RAG"),
-        MagicMock(next_action="analyst", task="Проанализируй информацию"),
-        MagicMock(next_action="finish", task=None),
-    ]
-
-    researcher_response = Mock()
-    researcher_response.success = True
-    researcher_response.task = "Найди информацию о RAG"
-    researcher_response.error = None
-    researcher_response.result = {
-        "success": True,
-        "result": {"answer": "Результат исследования."},
-    }
-    workflow_fixture.researcher.execute.return_value = researcher_response
-
-    analyst_response = Mock()
-    analyst_response.success = True
-    analyst_response.task = "Проанализируй информацию"
-    analyst_response.error = None
-    analyst_response.result = {
-        "success": True,
-        "result": {"answer": "Результат анализа."},
-    }
-    workflow_fixture.analyst.execute.return_value = analyst_response
-
-    workflow_fixture.finalizer.execute.return_value = "Финальный ответ."
+    setup_happy_path(workflow_fixture)
 
     await workflow_fixture.run(user_input="Что такое RAG?", max_iterations=5)
 
