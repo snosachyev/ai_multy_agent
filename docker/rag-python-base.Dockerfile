@@ -1,4 +1,4 @@
-FROM transformer-base:latest
+FROM ghcr.io/snosachyev/transformer-base:latest
 
 WORKDIR /app
 
