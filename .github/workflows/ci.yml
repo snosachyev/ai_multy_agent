@@ -9,6 +9,13 @@ on:
     branches:
       - main
 
+# 1. ОБЪЯВЛЯЕМ ОДИН РАЗ НА ВЕСЬ ФАЙЛ
+# Эти переменные автоматически попадут во все джобы (unit, integration, e2e)
+env:
+  PORT: "8000"
+  PROVIDER: "mock-provider"
+  LLM_MODEL: "mock-model"
+
 jobs:
 
   unit-tests:
