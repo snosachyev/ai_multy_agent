@@ -102,6 +102,7 @@ jobs:
         run: |
           pip install packages/rag_platform_contracts-*.whl
           pip install packages/rag_platform_observability-*.whl
+          pip install packages/rag_platform_orchestrator-*.whl
           pip install ./rag-platform-researcher
 
       - name: Run integration tests
