@@ -4,110 +4,86 @@ on:
   push:
     branches:
       - main
-
   pull_request:
     branches:
       - main
 
 jobs:
-
   unit-tests:
-    name: Unit tests
+    name: Unit Tests
     runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [contracts, observability, orchestrator]
+    
     steps:
-
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: 'pip'
 
       - name: Upgrade pip
-        run: |
-          python -m pip install --upgrade pip
+        run: python -m pip install --upgrade pip
 
-      - name: Install build
+      # Способ 1: Сборка пакетов (если ваши тесты зависят от скомпилированных whl)
+      - name: Install build tools & Build
         run: |
           pip install build
+          python -m build rag-platform-${{ matrix.package }}
+          pip install rag-platform-${{ matrix.package }}/dist/*.whl
 
-      - name: Build contracts
-        run: |
-          python -m build rag-platform-contracts
-
-      - name: Build observability
-        run: |
-          python -m build rag-platform-observability
-
-      - name: Build orchestrator
-        run: |
-          python -m build rag-platform-orchestrator
-
-      - name: Install contracts
-        run: |
-          pip install rag-platform-contracts/dist/*.whl
-
-      - name: Install observability
-        run: |
-          pip install rag-platform-observability/dist/*.whl
-
-      - name: Install orchestrator
-        run: |
-          pip install rag-platform-orchestrator/dist/*.whl
-
-      - name: Install test dependencies
-        run: |
-          pip install pytest pytest-asyncio anyio httpx
-
-      # 3. Устанавливаем все внешние библиотеки (pydantic-settings, pytest, httpx и др.) из общего файла
-      - name: Install project and test dependencies
+      # Способ 2: Установка ВСЕХ зависимостей из вашего файла (как локально)
+      - name: Install local requirements.txt
         run: |
           pip install -r requirements.txt
-
 
       - name: Run unit tests
         run: |
           python -m pytest tests/unit/ -v
 
-
   integration-tests:
-    name: Integration tests
+    name: Integration Tests
     runs-on: ubuntu-latest
-
+    needs: unit-tests # Запускаются только после успешных unit-тестов
+    
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: 'pip'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pytest pytest-asyncio anyio httpx
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
-      - name: Build contracts
+      # Для интеграционных тестов собираем ВСЕ три пакета, так как они могут взаимодействовать
+      - name: Install build tools & Build all packages
         run: |
           pip install build
-          cd rag-platform-contracts
-          python -m build
-          cd ..
-          cp rag-platform-contracts/dist/*.whl packages/
+          python -m build rag-platform-contracts
+          python -m build rag-platform-observability
+          python -m build rag-platform-orchestrator
+          pip install rag-platform-contracts/dist/*.whl
+          pip install rag-platform-observability/dist/*.whl
+          pip install rag-platform-orchestrator/dist/*.whl
 
-      - name: Install packages
+      # Устанавливаем ваш локальный requirements.txt, чтобы подтянулись все pydantic-settings, httpx и т.д.
+      - name: Install local requirements.txt
         run: |
-          pip install packages/rag_platform_contracts-*.whl
-          pip install packages/rag_platform_observability-*.whl
-          pip install packages/rag_platform_orchestrator-*.whl
-          pip install ./rag-platform-researcher
+          pip install -r requirements.txt
 
+      # Запуск интеграционных тестов
       - name: Run integration tests
         run: |
-          pytest tests/integration/ -v
+          python -m pytest tests/integration/ -v
 
 
   e2e-smoke:
