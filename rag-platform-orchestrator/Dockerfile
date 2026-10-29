@@ -1,4 +1,4 @@
-FROM rag-python-base:latest
+FROM ghcr.io/snosachyev/rag-python-base:latest
 
 WORKDIR /app
 
