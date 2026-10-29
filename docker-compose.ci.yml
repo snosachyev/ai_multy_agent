@@ -1,10 +1,7 @@
 services:
 
   orchestrator:
-    image: rag-orchestrator:latest
-    build:
-      context: .
-      dockerfile: ./rag-platform-orchestrator/Dockerfile # Укажите ваш реальный путь к Dockerfile оркестратора
+    image: ghcr.io/snosachyev/rag-platform-orchestrator:latest
     container_name: rag-orchestrator-container
     ports:
       - "${ORCHESTRATOR_HOST_PORT}:${ORCHESTRATOR_HOST_PORT}" 
