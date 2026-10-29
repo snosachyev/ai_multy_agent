@@ -1,0 +1,22 @@
+
+# Шаг 1. Локально создаем токен для доступа к GitHub Registry
+
+    Вы не можете зайти в реестр GitHub со своего компьютера по обычному паролю. Нужен персональный токен (PAT):
+    1. В вашем аккаунте GitHub перейдите в Settings (Настройки) -> Developer settings -> Personal access tokens -> Tokens (classic).
+    2. Нажмите Generate new token (classic).
+    3. Дайте ему любое имя и обязательно отметьте галочку write:packages (галочка read:packages проставится сама).
+    4. Нажмите Generate и скопируйте получившийся длинный токен (больше вы его не увидите).
+
+# Шаг 2. Заливаем образы со своего компьютера в хранилище GitHub
+
+    (замените ВАШ_GITHUB_ЛОГИН на ваш реальный никнейм на GitHub в нижнем регистре):
+    1. Авторизуемся в GitHub Registry (вставьте скопированный токен вместо слова ТОКЕН):bash
+    echo "ТОКЕН" | docker login ghcr.io -u ВАШ_GITHUB_ЛОГИН --password-stdin
+    Используйте код с осторожностью.
+    2. Собираем и отправляем transformer-base:bash
+    docker build -t ghcr.io/ВАШ_GITHUB_ЛОГИН/transformer-base:latest -f ./docker/transformer-base.Dockerfile .
+    docker push ghcr.io/ВАШ_GITHUB_ЛОГИН/transformer-base:latest
+    Используйте код с осторожностью.
+    3. Собираем и отправляем rag-python-base:bash
+    docker build -t ghcr.io/ВАШ_GITHUB_ЛОГИН/rag-python-base:latest -f ./docker/rag-python-base.Dockerfile .
+    docker push ghcr.io/ВАШ_GITHUB_ЛОГИН/rag-python-base:latest
