@@ -175,11 +175,45 @@ jobs:
           mkdir -p rag-platform-orchestrator
           echo "PORT=8000" >> ./rag-platform-orchestrator/.env
 
-      # 3. Поднимаем инфраструктуру через ваш docker-compose.ci.yml
-      # Флаг --build заставит Docker собрать rag-orchestrator:latest на лету
+            # Используем специальный плагин для настройки Buildx (он нужен для продвинутого кэширования)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 1. Собираем и кэшируем самый нижний слой (transformer-base)
+      - name: Build and cache transformer-base
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/transformer-base.Dockerfile # Укажите точный путь к этому файлу
+          tags: transformer-base:latest
+          outputs: type=docker,dest=/tmp/transformer-base.tar
+          cache-from: type=gha,scope=transformer-base
+          cache-to: type=gha,mode=max,scope=transformer-base
+
+      # Загружаем собранный tar-архив в локальный Docker Daemon, чтобы следующий шаг его увидел
+      - name: Load transformer-base into Docker
+        run: docker load -i /tmp/transformer-base.tar
+
+      # 2. Собираем и кэшируем средний слой (rag-python-base)
+      - name: Build and cache rag-python-base
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/rag-python-base.Dockerfile # Укажите точный путь к этому файлу
+          tags: rag-python-base:latest
+          outputs: type=docker,dest=/tmp/rag-python-base.tar
+          cache-from: type=gha,scope=rag-python-base
+          cache-to: type=gha,mode=max,scope=rag-python-base
+
+      - name: Load rag-python-base into Docker
+        run: docker load -i /tmp/rag-python-base.tar
+
+      # 3. Теперь запускаем ваш docker compose.
+      # Благодаря Buildx и кэшу, Docker Compose мгновенно найдет rag-python-base на машине и быстро соберет оркестратор
       - name: Start Orchestrator and Fake Agents
         run: |
           docker compose -f docker-compose.ci.yml up -d --build
+
 
       - name: Show running containers
         run: |
