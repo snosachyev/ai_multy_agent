@@ -123,7 +123,12 @@ jobs:
   e2e-smoke:
     name: E2E smoke
     runs-on: ubuntu-latest
-    needs: integration-tests # Запускаем E2E только после прохождения интеграционных тестов
+    needs: integration-tests
+
+    # Даем права воркфлоу на чтение пакетов из вашего GitHub хранилища
+    permissions:
+      contents: read
+      packages: read
 
     env:
       ORCHESTRATOR_HOST_PORT: "8000"
@@ -143,7 +148,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest pytest-asyncio anyio httpx build
 
-      # 1. Подготавливаем .whl пакеты для мок-контейнера fake-agents
       - name: Build local packages for mock container
         run: |
           mkdir -p packages
@@ -152,31 +156,26 @@ jobs:
           python -m build rag-platform-observability
           cp rag-platform-observability/dist/*.whl packages/
 
-      # 2. Создаем временный файл .env на диске runner-сервера, так как compose ci ссылается на него
       - name: Create environment files
         run: |
           echo "ORCHESTRATOR_HOST_PORT=8000" >> .env
           echo "PORT=8000" >> .env
           echo "PROVIDER=mock-provider" >> .env
           echo "LLM_MODEL=mock-model" >> .env
-          
           mkdir -p rag-platform-orchestrator
           echo "PORT=8000" >> ./rag-platform-orchestrator/.env
 
-      # 3. Классическая последовательная сборка образов через Docker CLI хоста
-      - name: Build transformer-base image
-        run: |
-          docker build \
-            -t transformer-base:latest \
-            -f ./docker/transformer-base.Dockerfile .
+      # --- НОВЫЙ ШАГ: Авторизация внутри GitHub Actions ---
+      # Системе не нужны ручные токены, она берет встроенный секрет GITHUB_TOKEN
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build rag-python-base image
-        run: |
-          docker build \
-            -t rag-python-base:latest \
-            -f ./docker/rag-python-base.Dockerfile .
-
-      # 4. Запускаем Docker Compose. Он автоматически найдет локальный rag-python-base и соберет оркестратор
+      # Теперь запускаем Docker Compose. 
+      # Он сам увидит в Dockerfile ссылку FROM ghcr.io/..., скачает готовые слои за пару секунд и соберет оркестратор!
       - name: Start Orchestrator and Fake Agents
         run: |
           docker compose -f docker-compose.ci.yml up -d --build
@@ -185,7 +184,6 @@ jobs:
         run: |
           docker compose -f docker-compose.ci.yml ps
 
-      # 5. Ждем готовности оркестратора (healthcheck) перед запуском тестов
       - name: Wait for Orchestrator to respond
         run: |
           for i in {1..30}; do
@@ -200,25 +198,21 @@ jobs:
           docker compose -f docker-compose.ci.yml logs
           exit 1
 
-      # 6. Устанавливаем пакеты в окружение раннера, чтобы pytest мог запустить e2e скрипты
       - name: Install test packages in runner
         run: |
           pip install packages/rag_platform_contracts-*.whl
           pip install packages/rag_platform_observability-*.whl
           pip install ./rag-platform-orchestrator
 
-      # 7. Запускаем E2E сценарии
       - name: Run E2E smoke tests
         run: |
           pytest tests/e2e/orchestrator/smoke/ -v
 
-      # Траблшутинг: выводим логи контейнеров, только если тесты завалились
       - name: Show Docker logs on failure
         if: failure()
         run: |
           docker compose -f docker-compose.ci.yml logs --no-color
 
-      # Полная очистка поднятых Docker-ресурсов в любом случае
       - name: Stop services
         if: always()
         run: |
