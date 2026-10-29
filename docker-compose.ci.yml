@@ -1,0 +1,75 @@
+services:
+
+  orchestrator:
+    image: rag-orchestrator:latest
+    build:
+      context: .
+      dockerfile: ./rag-platform-orchestrator/Dockerfile # Укажите ваш реальный путь к Dockerfile оркестратора
+    container_name: rag-orchestrator-container
+    ports:
+      - "${ORCHESTRATOR_HOST_PORT}:${ORCHESTRATOR_HOST_PORT}" 
+      
+    env_file:
+        - ./.env
+        - ./rag-platform-orchestrator/.env # Путь к файлу .env относительно docker-compose.yml
+    volumes:
+      # Пробрасываем папки с исходным кодом пакетов в те пути, куда их установил pip -e
+      - ./packages/rag_platform_contracts:/src/rag_platform_contracts
+      - ./rag-platform-orchestrator:/app
+
+    environment:
+      PORT: ${ORCHESTRATOR_HOST_PORT}
+      DIRECTOR_SERVICE_URL: http://fake-agents:9000
+      RESEARCHER_SERVICE_URL: http://fake-agents:9000
+      ANALYST_SERVICE_URL: http://fake-agents:9000
+      FINALIZER_SERVICE_URL: http://fake-agents:9000
+
+    depends_on:
+      fake-agents:
+        condition: service_healthy
+
+    #healthcheck:
+    #  test:
+    #    [
+    #      "CMD",
+    #      "python",
+    #      "-c",
+    #      "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"
+    #    ]
+    #  interval: 5s
+    #  timeout: 5s
+    #  retries: 20
+    #  start_period: 10s
+
+    networks:
+      - rag-network
+
+
+  fake-agents:
+    image: python:3.12-slim
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./mocks/mock_services.py:/app/mock_services.py
+      - ./packages:/tmp/packages
+    working_dir: /app
+    command: >
+      sh -c "pip install --no-cache-dir fastapi uvicorn pydantic && 
+             pip install /tmp/packages/rag_platform_contracts-1.0.0-py3-none-any.whl && 
+             python mock_services.py"
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/health', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    networks:
+      - rag-network
+
+
+
+networks:
+  rag-network:
+    name: rag-network
+
