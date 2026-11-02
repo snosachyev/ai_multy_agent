@@ -9,19 +9,12 @@ import pytest
 
 
 @pytest.mark.anyio
-async def test_agent_failure_is_handled(client):
-    """
-    Проверяет корректность обработки критического сбоя агента при запуске воркфлоу.
-
-    Тест отправляет запрос, провоцирующий ошибку в цепочке агентов, и убеждается,
-    что оркестратор возвращает предсказуемый статус-код (200 или 500) и валидное тело ответа.
-    """
-    response = await client.post(
-        "/api/v1/workflows/run",
-        json={
-            "user_input": "Trigger an agent failure scenario.",
-            "max_iterations": 3,
-        },
+async def test_agent_failure_is_handled(run_orchestrator):
+    """Проверяет корректность обработки критического сбоя агента при запуске воркфлоу."""
+    # Используем фабрику вместо прямого client.post
+    response = await run_orchestrator(
+        user_input="Trigger an agent failure scenario.",
+        max_iterations=3,
     )
 
     assert response.status_code in {200, 500}
