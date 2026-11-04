@@ -94,6 +94,22 @@
 
     .venv/bin/python -m pytest tests/e2e/orchestrator/ -v
 
+## researcher
+    export DATA_DIR="real_path/ai_multy_agent/data"
+
+    .venv/bin/python -m pytest tests/e2e/researcher/ -v
+
+### mock researcher
+    export RESEARCHER_SERVICE_URL="http://localhost:9000"
+    export RESEARCHER_TIMEOUT=10
+### real researcher
+    export RESEARCHER_SERVICE_URL="http://localhost:8001"
+    export RESEARCHER_TIMEOUT=300
+
+.venv/bin/python -m pytest tests/e2e/researcher/test_researcher.py -v
+
+
+
 # load test
     locust \
   -f tests/load/orchestrator/locustfile.py \
