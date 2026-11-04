@@ -69,6 +69,7 @@ jobs:
       - name: Install packages
         run: |
           pip install packages/rag_platform_researcher-*.whl
+          pip install packages/rag_platform_llm-*.whl
 
       - name: Install project and test dependencies from requirements.txt
         run: |
