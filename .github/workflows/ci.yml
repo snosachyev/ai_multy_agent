@@ -312,7 +312,7 @@ jobs:
             -u 10 \
             -r 2 \
             --run-time 1m \
-            --exit-code-on-error
+            --exit-code-on-error 1
 
       - name: Show Docker logs on failure
         if: failure()
