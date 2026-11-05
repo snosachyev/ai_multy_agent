@@ -303,6 +303,7 @@ jobs:
       # -r 2: скорость спавна (2 пользователя в секунду)
       # --run-time 1m: гоняем тест ровно 1 минуту (для CI этого достаточно)
       # --exit-code-on-error: если Locust поймает хотя бы один response.failure(), джоба упадет
+      #  КОНТРОЛЕМ SLA И ОШИБОК
       - name: Run Locust Smoke Test
         run: |
           locust \
