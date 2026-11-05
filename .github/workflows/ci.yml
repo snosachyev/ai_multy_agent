@@ -226,3 +226,100 @@ jobs:
         if: always()
         run: |
           docker compose -f docker-compose.ci.yml down -v
+
+
+  # Быстрый нагрузочный тест
+  load-smoke:
+    name: Load Smoke Test (Locust)
+    runs-on: ubuntu-latest
+    # Запускаем параллельно с e2e или после него. Лучше параллельно, чтобы экономить время CI.
+    # needs: integration-tests 
+    permissions:
+      contents: read
+      packages: read
+    env:
+      ORCHESTRATOR_HOST_PORT: "8000"
+      # Переменные для фейковых сервисов, которые вы упомянули
+      DIRECTOR_SERVICE_URL: "http://0.0.0.0:9000"
+      RESEARCHER_SERVICE_URL: "http://0.0.0.0:9000"
+      ANALYST_SERVICE_URL: "http://0.0.0.0:9000"
+      FINALIZER_SERVICE_URL: "http://0.0.0.0:9000"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Для запуска Locust нужен Python. Кэширование pip ускорит повторные запуски.
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: 'pip'
+
+      # Ставим сам locust. Проектные зависимости ставить не обязательно, 
+      # так как код оркестратора работает внутри Docker-контейнера!
+      - name: Install Locust
+        run: |
+          python -m pip install --upgrade pip
+          pip install locust
+
+      - name: Create environment files
+        run: |
+          echo "ORCHESTRATOR_HOST_PORT=8000" >> .env
+          echo "PORT=8000" >> .env
+          echo "PROVIDER=mock-provider" >> .env
+          echo "LLM_MODEL=mock-model" >> .env
+          mkdir -p rag-platform-orchestrator
+          echo "PORT=8000" >> ./rag-platform-orchestrator/.env
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start Orchestrator and Fake Agents
+        run: |
+          docker compose -f docker-compose.ci.yml up -d --build
+
+      - name: Wait for Orchestrator to respond
+        run: |
+          for i in {1..30}; do
+            if curl --fail --silent http://localhost:8000/health > /dev/null; then
+              echo "Orchestrator is healthy and ready!"
+              exit 0
+            fi
+            echo "Waiting for orchestrator..."
+            sleep 2
+          done
+          echo "Orchestrator did not become healthy in time"
+          docker compose -f docker-compose.ci.yml logs
+          exit 1
+
+      # ЗАПУСК LOCUST
+      # --headless: без веб-интерфейса
+      # -u 10: 10 одновременных фейковых пользователей
+      # -r 2: скорость спавна (2 пользователя в секунду)
+      # --run-time 1m: гоняем тест ровно 1 минуту (для CI этого достаточно)
+      # --exit-code-on-error: если Locust поймает хотя бы один response.failure(), джоба упадет
+      - name: Run Locust Smoke Test
+        run: |
+          locust \
+            -f tests/load/orchestrator/locustfile.py \
+            --host http://localhost:8000 \
+            --headless \
+            -u 10 \
+            -r 2 \
+            --run-time 1m \
+            --exit-code-on-error
+
+      - name: Show Docker logs on failure
+        if: failure()
+        run: |
+          docker compose -f docker-compose.ci.yml logs --no-color
+
+      - name: Stop services
+        if: always()
+        run: |
+          docker compose -f docker-compose.ci.yml down -v
