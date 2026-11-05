@@ -68,7 +68,8 @@ class OrchestratorUser(HttpUser):
 
 
 # --- Хук для проверки SLA после завершения теста ---
-@events.quitting.connect
+# Заменили .connect на .add_listener
+@events.quitting.add_listener
 def check_sla(environment, **_kwargs):
     """Проверяет соответствие результатов теста заданным критериям SLA.
 
@@ -76,15 +77,10 @@ def check_sla(environment, **_kwargs):
     Если p95 время ответа превышает лимит, принудительно выставляет
     код выхода из процесса равным 1, что роняет джобу в CI.
     """
-    # Если тест запускался в режиме headless (как в CI), проверяем метрики
     if environment.stats:
-        # Получаем общую статистику для всех запросов
         aggregated_stats = environment.stats.total
-
-        # Получаем аппроксимированный 95-й перцентиль времени ответа
         p95 = aggregated_stats.get_current_response_time_percentile(0.95)
 
-        # Используем "ленивое" %-форматирование для логгера (исправление предупреждения)
         logger.info(
             "=== Проверка SLA: Текущий p95 = %dмс (Лимит: %dмс) ===",
             p95,
@@ -97,5 +93,4 @@ def check_sla(environment, **_kwargs):
                 p95,
                 MAX_P95_RESPONSE_TIME
             )
-            # Меняем код выхода Locust. Это заставит runner в GitHub Actions выдать ошибку.
             environment.process_exit_code = 1
