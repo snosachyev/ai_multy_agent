@@ -22,7 +22,7 @@ class OrchestratorUser(HttpUser):
     def run_workflow(self):
         """Тестирование эндпоинта запуска мультиагентного воркфлоу.
 
-        Отправляет POST-запрос на `/v1/workflows/run` с тестовым промптом.
+        Отправляет POST-запрос на `/api/v1/workflows/run` с тестовым промптом.
         Валидирует:
         - HTTP статус-код (ожидается 200).
         - Корректность структуры ответа (ожидается валидный JSON).
@@ -33,12 +33,12 @@ class OrchestratorUser(HttpUser):
         флага --exit-code-on-error.
         """
         with self.client.post(
-            "/v1/workflows/run",
+            "/api/v1/workflows/run",
             json={
                 "user_input": "What is RAG?",
                 "max_iterations": 3,
             },
-            name="POST /v1/workflows/run",
+            name="POST /api/v1/workflows/run",
             catch_response=True,
         ) as response:
             if response.status_code != 200:
