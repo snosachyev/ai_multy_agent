@@ -1,0 +1,28 @@
+[
+  {
+    "id": "task-decomposition-001",
+    "question": "What is task decomposition?",
+    "relevant_documents": [
+      "doc_task_decomposition_001"
+    ],
+    "reference_answer": "Task decomposition is the process of breaking a large task into smaller manageable subtasks."
+  },
+  {
+    "id": "task-decomposition-002",
+    "question": "Why is task decomposition useful for agents?",
+    "relevant_documents": [
+      "doc_task_decomposition_001",
+      "doc_task_decomposition_002"
+    ],
+    "reference_answer": "Task decomposition helps agents handle complex tasks by breaking them into smaller manageable subgoals."
+  },
+  {
+    "id": "task-decomposition-003",
+    "question": "How does task decomposition relate to planning in LLM-powered autonomous agents?",
+    "relevant_documents": [
+      "doc_planning_001",
+      "doc_task_decomposition_001"
+    ],
+    "reference_answer": "Task decomposition is part of planning: an agent breaks a complex task into smaller subgoals that can be handled more efficiently."
+  }
+]
