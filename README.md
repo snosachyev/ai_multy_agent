@@ -92,6 +92,12 @@
     export ANALYST_SERVICE_URL="http://0.0.0.0:9000"
     export FINALIZER_SERVICE_URL="http://0.0.0.0:9000"
 
+## адрес внутри докера
+    export DIRECTOR_SERVICE_URL="http://fake-agents:9000"
+    export RESEARCHER_SERVICE_URL="http://fake-agents:9000"
+    export ANALYST_SERVICE_URL="http://fake-agents:9000"
+    export FINALIZER_SERVICE_URL="http://fake-agents:9000"
+
     .venv/bin/python -m pytest tests/e2e/orchestrator/ -v
 
 ## researcher
