@@ -43,3 +43,4 @@ Thumbs.db
 # Игнорируем локальные данные и кэши
 **/data/*.pkl
 **/data/*.bin
+**/reports/*
