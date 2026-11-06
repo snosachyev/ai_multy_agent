@@ -1,0 +1,7 @@
+[
+  {
+    "id": "rag-basic-001",
+    "question": "What is retrieval augmented generation?",
+    "reference_answer": "Retrieval augmented generation combines information retrieval with language model generation. The system retrieves relevant information and provides it to the language model as context for generating an answer."
+  }
+]

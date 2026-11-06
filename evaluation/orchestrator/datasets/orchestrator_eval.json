@@ -1,0 +1,17 @@
+[
+  {
+    "id": "rag-basic-001",
+    "question": "What is retrieval augmented generation?",
+    "reference_answer": "Retrieval augmented generation combines information retrieval with language model generation. The system retrieves relevant information and provides it to the language model as context for generating an answer."
+  },
+  {
+    "id": "rag-benefits-001",
+    "question": "What are the main benefits of retrieval augmented generation?",
+    "reference_answer": "Retrieval augmented generation can improve factual grounding, use external or up-to-date information, reduce reliance on information stored only in model parameters, and provide relevant retrieved context to the generation model."
+  },
+  {
+    "id": "rag-components-001",
+    "question": "What are the main components of a retrieval augmented generation system?",
+    "reference_answer": "A typical retrieval augmented generation system contains a retriever or search component, a knowledge source or vector store, and a language model that generates an answer using the retrieved context."
+  }
+]
