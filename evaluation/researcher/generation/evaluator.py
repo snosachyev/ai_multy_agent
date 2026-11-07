@@ -7,10 +7,9 @@
 import asyncio
 from typing import Any, Dict, Optional
 
-from .correctness import evaluate_correctness
-from .faithfulness import evaluate_faithfulness
-from .relevance import evaluate_relevance
-
+from evaluation.researcher.generation.correctness import evaluate_correctness
+from evaluation.researcher.generation.faithfulness import evaluate_faithfulness
+from evaluation.researcher.generation.relevance import evaluate_relevance
 
 async def evaluate_generation(
     llm: Any,
