@@ -1,4 +1,4 @@
-FROM ghcr.io/snosachyev/rag-python-base:latest
+FROM ghcr.io/snosachyev/rag-python-base:latest AS researcher-base
 
 WORKDIR /app
 
@@ -16,5 +16,31 @@ RUN pip install --no-cache-dir /tmp/packages/rag_platform_contracts-1.0.0-py3-no
     /tmp/packages/rag_platform_llm-1.0.0-py3-none-any.whl && \
     pip install -e .  --no-deps
 
+
+# =========================================
+# Runtime
+# =========================================
+
+FROM researcher-base AS runtime
+
+ENV PYTHONPATH=/app/src
 # 4. Запускаем uvicorn, указывая следить за изменениями в рабочей директории /app/src
 CMD ["sh", "-c", "uvicorn rag_platform_researcher.main:app --host 0.0.0.0 --port $PORT --reload --reload-dir /app"]
+
+
+# =========================================
+# Evaluation
+# =========================================
+
+FROM researcher-base AS evaluation
+
+# Дополнительный пакет для бд, как в orchestrator (если researcher пишет результаты в базу)
+RUN pip install --no-cache-dir "psycopg[binary]"
+
+COPY evaluation/researcher ./evaluation/researcher
+COPY evaluation/common ./evaluation/common
+
+ENV PYTHONPATH=/app/src
+
+CMD ["python", "-m", "evaluation.researcher.run_evaluation", "--mode", "smoke"]
+
