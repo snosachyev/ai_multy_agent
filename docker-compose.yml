@@ -1,0 +1,175 @@
+services:
+
+  orchestrator:
+    image: ghcr.io/snosachyev/rag-platform-orchestrator:latest
+    container_name: rag-orchestrator-container  # Задаем фиксированное имя контейнера
+    ports:
+      - "${ORCHESTRATOR_HOST_PORT}:${ORCHESTRATOR_HOST_PORT}" 
+    environment:
+      - PORT=${ORCHESTRATOR_HOST_PORT}
+    env_file:
+        - ./.env    
+        - ./rag-platform-orchestrator/.env # Путь к файлу .env относительно docker-compose.yml
+    volumes:
+      # Пробрасываем папки с исходным кодом пакетов в те пути, куда их установил pip -e
+      - ./packages/rag_platform_contracts:/src/rag_platform_contracts
+      - ./rag-platform-orchestrator:/app
+    depends_on:
+      director:
+        condition: service_healthy
+      researcher:
+        condition: service_healthy
+      analyst:
+        condition: service_healthy
+      finalizer:
+        condition: service_healthy
+    networks:
+      - rag-network
+
+  researcher:
+    image: rag-researcher:latest
+    ports:
+      - "${RESEARCHER_HOST_PORT}:${RESEARCHER_HOST_PORT}" 
+    environment:
+      - PORT=${RESEARCHER_HOST_PORT}
+    env_file:
+        - ./.env    
+        - ./rag-platform-researcher/.env # Путь к файлу .env относительно docker-compose.yml
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:${RESEARCHER_HOST_PORT}/health', timeout=3)"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+    depends_on:
+      - ollama-service
+    networks:
+      - rag-network
+    volumes:
+      # Пробрасываем папки с исходным кодом пакетов в те пути, куда их установил pip -e
+      - ./packages/rag_platform_contracts:/src/rag_platform_contracts
+      - ./rag-platform-researcher:/app
+      - ./data:/data
+      - hf_cache:/root/.cache/huggingface
+
+  ollama-service:
+    runtime: nvidia
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    #dns:
+    #  - 8.8.8.8
+    volumes:
+      # ЭТА СТРОКА ОЧЕНЬ ВАЖНА: она сохраняет модели на вашем ПК, они не удалятся
+      - ollama_data:/root/.ollama
+    networks:
+      - rag-network
+    environment:
+      - OLLAMA_DEBUG=1
+      - OLLAMA_KEEP_ALIVE=-1
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  analyst:
+    image: rag-analyst:latest  # Указываем ваш готовый локальный образ
+    container_name: rag-analyst-container  # Задаем фиксированное имя контейнера
+    ports:
+      - "${ANALYST_HOST_PORT}:${ANALYST_HOST_PORT}" 
+    environment:
+      - PORT=${ANALYST_HOST_PORT}
+    env_file:
+        - ./.env    
+        - ./rag-platform-analyst/.env # Путь к файлу .env относительно docker-compose.yml
+    volumes:
+      # Пробрасываем папки с исходным кодом пакетов в те пути, куда их установил pip -e
+      - ./packages/rag_platform_contracts:/src/rag_platform_contracts
+      - ./rag-platform-analyst:/app
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8003/health')"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rag-network
+    depends_on:
+      - ollama-service
+
+  director:
+    image: rag-director:latest  # Указываем ваш готовый локальный образ
+    container_name: rag-director-container  # Задаем фиксированное имя контейнера
+    ports:
+      - "${DIRECTOR_HOST_PORT}:${DIRECTOR_HOST_PORT}" 
+    env_file:
+        - ./.env  
+        - ./rag-platform-director/.env # Путь к файлу .env относительно docker-compose.yml
+    volumes:
+      # Пробрасываем папки с исходным кодом пакетов в те пути, куда их установил pip -e
+      - ./packages/rag_platform_contracts:/src/rag_platform_contracts
+      - ./rag-platform-director:/app
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:${DIRECTOR_HOST_PORT}/health')"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rag-network
+    depends_on:
+      - ollama-service
+
+  finalizer:
+    image: rag-finalizer:latest
+    ports:
+      - "${FINALIZER_HOST_PORT}:${FINALIZER_HOST_PORT}" 
+    env_file:
+        - ./.env  
+        - ./rag-platform-finalizer/.env # Путь к файлу .env относительно docker-compose.yml
+    volumes:
+      # Пробрасываем папки с исходным кодом пакетов в те пути, куда их установил pip -e
+      - ./packages/rag_platform_contracts:/src/rag_platform_contracts
+      - ./rag-platform-finalizer:/app
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:${FINALIZER_HOST_PORT}/health')"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rag-network
+
+networks:
+  rag-network:
+    driver: bridge # Это явно разрешает контейнерам выходить наружу через NAT хоста
+    name: rag-network
+    external: true
+
+volumes:
+  ollama_data: # Объявляем постоянную папку для моделей
+  hf_cache:
