@@ -117,11 +117,18 @@
 
 
 # load test
+    docker compose  up -d
     locust \
   -f tests/load/orchestrator/locustfile.py \
   --host http://localhost:8000
 ## запуск нагрузочного теста с фейк сервисами
-    docker compose -f docker-compose.yml -f docker-compose.load-test.yml up -d orchestrator fake-agents
+    docker compose -f docker-compose.ci.yml up -d
+
+    export DIRECTOR_SERVICE_URL="http://0.0.0.0:9000"
+    export RESEARCHER_SERVICE_URL="http://0.0.0.0:9000"
+    export ANALYST_SERVICE_URL="http://0.0.0.0:9000"
+    export FINALIZER_SERVICE_URL="http://0.0.0.0:9000"
+
     locust \
   -f tests/load/orchestrator/locustfile.py \
   --host http://localhost:8000
