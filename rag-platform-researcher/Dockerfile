@@ -29,12 +29,11 @@ CMD ["sh", "-c", "uvicorn rag_platform_researcher.main:app --host 0.0.0.0 --port
 
 
 # =========================================
-# Evaluation
+# Shared Evaluation Base (Общий слой для оценки)
 # =========================================
+FROM researcher-base AS evaluation-shared-base
 
-FROM researcher-base AS evaluation
-
-# Дополнительный пакет для бд, как в orchestrator (если researcher пишет результаты в базу)
+# Устанавливаем зависимости и копируем исходный код ОДИН раз
 RUN pip install --no-cache-dir "psycopg[binary]"
 
 COPY evaluation/researcher ./evaluation/researcher
@@ -42,5 +41,22 @@ COPY evaluation/common ./evaluation/common
 
 ENV PYTHONPATH=/app/src
 
+
+# =========================================
+# Target 1: Evaluation (Запуск оценки)
+# =========================================
+FROM evaluation-shared-base AS evaluation
+
+# Так как всё уже скопировано и настроено, пишем только команду запуска
 CMD ["python", "-m", "evaluation.researcher.run_evaluation", "--mode", "smoke"]
+
+
+# =========================================
+# Target 2: Compare evaluation (Сравнение)
+# =========================================
+FROM evaluation-shared-base AS compare_evaluations
+
+# Наследуемся от общей базы и переопределяем ENTRYPOINT
+ENTRYPOINT ["python", "-m", "evaluation.researcher.compare_evaluations"]
+
 
