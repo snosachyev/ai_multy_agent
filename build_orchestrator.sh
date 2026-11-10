@@ -16,6 +16,6 @@ mkdir -p packages
 
 cp rag-platform-orchestrator/dist/*.whl packages/
 
-docker build --no-cache -t rag-orchestrator:latest -f rag-platform-orchestrator/Dockerfile .
+docker build --no-cache --target runtime -t rag-orchestrator:latest -f rag-platform-orchestrator/Dockerfile .
 
 echo "✅ Пакет собран и скопирован в packages/"
