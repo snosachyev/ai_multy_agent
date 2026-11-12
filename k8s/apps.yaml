@@ -1,0 +1,203 @@
+# --- ORCHESTRATOR ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-orchestrator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orchestrator
+  template:
+    metadata:
+      labels:
+        app: orchestrator
+    spec:
+      containers:
+      - name: orchestrator
+        image: ghcr.io/snosachyev/rag-platform-orchestrator:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: rag-config
+        command: ["sh", "-c", "uvicorn rag_platform_orchestrator.main:app --host 0.0.0.0 --port 8000"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-orchestrator
+spec:
+  type: NodePort
+  ports:
+  - port: 8000
+    targetPort: 8000
+    nodePort: 30080
+  selector:
+    app: orchestrator
+---
+# --- RESEARCHER ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-researcher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: researcher
+  template:
+    metadata:
+      labels:
+        app: researcher
+    spec:
+      containers:
+      - name: researcher
+        image: ghcr.io/snosachyev/rag-researcher:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: rag-config
+        command: ["sh", "-c", "uvicorn rag_platform_researcher.main:app --host 0.0.0.0 --port 8000"]
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        volumeMounts:
+        - name: rag-storage
+          mountPath: /data
+          subPath: data
+        - name: rag-storage
+          mountPath: /root/.cache/huggingface
+          subPath: huggingface
+      volumes:
+      - name: rag-storage
+        persistentVolumeClaim:
+          claimName: rag-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-researcher
+spec:
+  ports:
+  - port: 8002
+    targetPort: 8000
+  selector:
+    app: researcher
+---
+# --- DIRECTOR ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-director
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: director
+  template:
+    metadata:
+      labels:
+        app: director
+    spec:
+      containers:
+      - name: director
+        image: ghcr.io/snosachyev/rag-director:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: rag-config
+        command: ["sh", "-c", "uvicorn rag_platform_director.main:app --host 0.0.0.0 --port 8000"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-director
+spec:
+  ports:
+  - port: 8001
+    targetPort: 8000
+  selector:
+    app: director
+---
+# --- ANALYST ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-analyst
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: analyst
+  template:
+    metadata:
+      labels:
+        app: analyst
+    spec:
+      containers:
+      - name: analyst
+        image: ghcr.io/snosachyev/rag-analyst:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: rag-config
+        command: ["sh", "-c", "uvicorn rag_platform_analyst.main:app --host 0.0.0.0 --port 8000"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-analyst
+spec:
+  ports:
+  - port: 8003
+    targetPort: 8000
+  selector:
+    app: analyst
+---
+# --- FINALIZER ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-finalizer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: finalizer
+  template:
+    metadata:
+      labels:
+        app: finalizer
+    spec:
+      containers:
+      - name: finalizer
+        image: ghcr.io/snosachyev/rag-finalizer:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: rag-config
+        command: ["sh", "-c", "uvicorn rag_platform_finalizer.main:app --host 0.0.0.0 --port 8000"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-finalizer
+spec:
+  ports:
+  - port: 8004
+    targetPort: 8000
+  selector:
+    app: finalizer
