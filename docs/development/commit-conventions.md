@@ -132,6 +132,7 @@ The following scopes are recommended examples.
 
 | Scope | Description |
 |---|---|
+| `k8s` | Kubernetes manifests, Helm charts, and cluster configuration. |
 | `docker` | Dockerfiles, Docker Compose, container configuration. |
 | `grafana` | Grafana dashboards and configuration. |
 | `prometheus` | Prometheus metrics and configuration. |
