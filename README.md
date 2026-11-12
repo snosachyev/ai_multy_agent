@@ -192,3 +192,12 @@ pip list --not-required --format=freeze | grep -v "rag-platform-" > requirements
     docker exec -it ai_multy_agent-ollama-service-1 ollama run qwen2.5:7b
 
 
+
+# скрипт развертывания k8s
+chmod +x deploy.sh
+## Для локального запуска в Minikube
+./deploy.sh local
+
+## Для запуска в продакшн-облаке (или через GitHub Actions):
+./deploy.sh prod
+
