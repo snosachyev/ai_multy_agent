@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rag-config
+data:
+  ENVIRONMENT: "production"
+  PROVIDER: "ollama"
+  LLM_MODEL: "qwen2.5:7b"
+  OLLAMA_BASE_URL: "http://ollama-service:11434"
+  PORT: "8000"
+  HF_HUB_OFFLINE: "1"
+  DIRECTOR_SERVICE_URL: "http://rag-director:8001"
+  RESEARCHER_SERVICE_URL: "http://rag-researcher:8002"
+  ANALYST_SERVICE_URL: "http://rag-analyst:8003"
+  FINALIZER_SERVICE_URL: "http://rag-finalizer:8004"
+
+  # TO DO проверить
+  OLLAMA_REQUEST_TIMEOUT: "300.0"
+  HTTPX_TIMEOUT: "300.0"
+
+  DATABASE_URL: "postgresql+asyncpg://rag_user:rag_secure_password@postgres-metrics:5432/rag_metrics"
