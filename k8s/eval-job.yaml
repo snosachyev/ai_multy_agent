@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rag-eval-job
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: evaluator
+        image: ghcr.io/snosachyev/rag-researcher:latest
+        imagePullPolicy: IfNotPresent
+        workingDir: /tmp/workspace
+        envFrom:
+        - configMapRef:
+            name: rag-config
+        - secretRef:
+            name: metrics-secrets
+        env:
+        - name: PYTHONPATH
+          value: "/app/src:/tmp/workspace"
+        - name: OLLAMA_BASE_URL
+          value: "http://OLLAMA_HOST_PLACEHOLDER:11434"
+        - name: OLLAMA_HOST
+          value: "http://OLLAMA_HOST_PLACEHOLDER:11434"
+        - name: ORCHESTRATOR_SERVICE_URL
+          value: "http://ORCH_HOST_PLACEHOLDER:8000"
+        - name: RESEARCHER_SERVICE_URL
+          value: "http://RES_HOST_PLACEHOLDER:8002"
+        - name: DATABASE_URL
+          value: "postgresql+asyncpg://rag_user:rag_secure_password@PG_HOST_PLACEHOLDER:5432/rag_evaluation"
+        - name: POSTGRES_HOST
+          value: "PG_HOST_PLACEHOLDER"
+        command:
+          - "sh"
+          - "-c"
+          - |
+            mkdir -p /tmp/workspace && \
+            tar -xzf /mnt/eval/eval.tar.gz -C /tmp/workspace && \
+            python /tmp/workspace/EVAL_SCRIPT_PLACEHOLDER
+        volumeMounts:
+        - name: eval-archive
+          mountPath: /mnt/eval
+        - name: rag-vol
+          mountPath: /data
+          subPath: data
+        - name: rag-vol
+          mountPath: /root/.cache/huggingface
+          subPath: huggingface
+      volumes:
+      - name: eval-archive
+        configMap:
+          name: eval-code-cm
+      - name: rag-vol
+        persistentVolumeClaim:
+          claimName: rag-data-pvc
