@@ -1,3 +1,4 @@
+
 name: CI
 
 on:
@@ -8,7 +9,7 @@ on:
     branches:
       - main
 
-# Глобальные переменные окружения для всех джоб (подхватываются Pydantic-settings)
+# Глобальные переменные окружения
 env:
   PORT: "8000"
   PROVIDER: "mock-provider"
@@ -16,9 +17,13 @@ env:
 
 jobs:
 
-  unit-tests:
-    name: Unit tests
+  # =====================================================
+  # 1. BUILD PYTHON PACKAGES
+  # =====================================================
+  build-packages:
+    name: Build Python packages
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,63 +32,83 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: 'pip'
-
-      - name: Upgrade pip
-        run: |
-          python -m pip install --upgrade pip
+          cache: pip
 
       - name: Install build
         run: |
+          python -m pip install --upgrade pip
           pip install build
 
-      # Последовательно собираем все пакеты, чтобы conftest.py их гарантированно видел
-      - name: Build contracts
+      # Используем существующие скрипты.
+      # Docker на этом этапе не собираем.
+      - name: Build all Python packages
+        env:
+          SKIP_DOCKER: "1"
         run: |
-          python -m build rag-platform-contracts
+          bash scripts/build_contract.sh
+          bash scripts/build_observability.sh
+          bash scripts/build_orchestrator.sh
+          bash scripts/build_researcher.sh
+          bash scripts/build_llm.sh
+          bash scripts/build_analyst.sh
+          bash scripts/build_director.sh
+          bash scripts/build_finalizer.sh
 
-      - name: Build observability
-        run: |
-          python -m build rag-platform-observability
+      - name: Upload Python packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-packages
+          path: packages/*.whl
+          if-no-files-found: error
+          retention-days: 1
 
-      - name: Build orchestrator
-        run: |
-          python -m build rag-platform-orchestrator
 
-      - name: Install contracts
-        run: |
-          pip install rag-platform-contracts/dist/*.whl
+  # =====================================================
+  # 2. UNIT TESTS
+  # =====================================================
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    needs: build-packages
 
-      - name: Install observability
-        run: |
-          pip install rag-platform-observability/dist/*.whl
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Install orchestrator
-        run: |
-          pip install rag-platform-orchestrator/dist/*.whl
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
 
-      - name: Install test dependencies
+      - name: Download Python packages
+        uses: actions/download-artifact@v4
+        with:
+          name: python-packages
+          path: packages/
+
+      - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
           pip install pytest pytest-asyncio anyio httpx
 
-      - name: Install packages
+      - name: Install locally built packages
         run: |
-          pip install packages/rag_platform_researcher-*.whl
-          pip install packages/rag_platform_llm-*.whl
-
-      - name: Install project and test dependencies from requirements.txt
-        run: |
-          pip install -r requirements.txt
+          pip install packages/*.whl
 
       - name: Run unit tests
         run: |
           python -m pytest tests/unit/ -v
 
 
+  # =====================================================
+  # 3. INTEGRATION TESTS
+  # =====================================================
   integration-tests:
     name: Integration tests
     runs-on: ubuntu-latest
-    needs: unit-tests
+    needs: [build-packages, unit-tests]
 
     steps:
       - name: Checkout
@@ -93,95 +118,83 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: 'pip'
+          cache: pip
+
+      - name: Download Python packages
+        uses: actions/download-artifact@v4
+        with:
+          name: python-packages
+          path: packages/
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install -r requirements.txt
           pip install pytest pytest-asyncio anyio httpx
 
-      - name: Build contracts
+      - name: Install locally built packages
         run: |
-          pip install build
-          cd rag-platform-contracts
-          python -m build
-          cd ..
-          mkdir -p packages
-          cp rag-platform-contracts/dist/*.whl packages/
-
-      - name: Install packages
-        run: |
-          pip install packages/rag_platform_contracts-*.whl
-          pip install packages/rag_platform_observability-*.whl
-          pip install packages/rag_platform_orchestrator-*.whl
-          pip install ./rag-platform-researcher
-      
-      - name: Install project and test dependencies from requirements.txt
-        run: |
-          pip install -r requirements.txt
+          pip install packages/*.whl
 
       - name: Run integration tests
         run: |
-          pytest tests/integration/ -v
+          python -m pytest tests/integration/ -v
 
 
-  e2e-smoke:
-    name: E2E smoke
+  # =====================================================
+  # 4. E2E + LOAD SMOKE
+  # =====================================================
+  e2e-and-load:
+    name: E2E and Load Smoke Tests
     runs-on: ubuntu-latest
     needs: integration-tests
 
-    # Даем права воркфлоу на чтение пакетов из вашего GitHub хранилища
-    permissions:
-      contents: read
-      packages: read
-
     env:
       ORCHESTRATOR_HOST_PORT: "8000"
+      DIRECTOR_SERVICE_URL: "http://0.0.0.0:9000"
+      RESEARCHER_SERVICE_URL: "http://0.0.0.0:9000"
+      ANALYST_SERVICE_URL: "http://0.0.0.0:9000"
+      FINALIZER_SERVICE_URL: "http://0.0.0.0:9000"
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: 'pip'
+          cache: pip
+
+      - name: Download Python packages
+        uses: actions/download-artifact@v4
+        with:
+          name: python-packages
+          path: packages/
 
       - name: Install CI dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-asyncio anyio httpx build
+          pip install pytest pytest-asyncio anyio httpx locust
 
-      - name: Build local packages for mock container
+      - name: Install locally built packages
         run: |
-          mkdir -p packages
-          python -m build rag-platform-contracts
-          cp rag-platform-contracts/dist/*.whl packages/
-          python -m build rag-platform-observability
-          cp rag-platform-observability/dist/*.whl packages/
+          pip install -r requirements.txt
+          pip install packages/*.whl
 
+      # Создаем окружение
       - name: Create environment files
         run: |
           echo "ORCHESTRATOR_HOST_PORT=8000" >> .env
           echo "PORT=8000" >> .env
           echo "PROVIDER=mock-provider" >> .env
           echo "LLM_MODEL=mock-model" >> .env
+
           mkdir -p rag-platform-orchestrator
           echo "PORT=8000" >> ./rag-platform-orchestrator/.env
 
-      # --- НОВЫЙ ШАГ: Авторизация внутри GitHub Actions ---
-      # Системе не нужны ручные токены, она берет встроенный секрет GITHUB_TOKEN
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      # Теперь запускаем Docker Compose. 
-      # Он сам увидит в Dockerfile ссылку FROM ghcr.io/..., скачает готовые слои за пару секунд и соберет оркестратор!
-      - name: Start Orchestrator and Fake Agents
+      # Собираем собственные образы из текущего исходного кода
+      - name: Build and start services
         run: |
           docker compose -f docker-compose.ci.yml up -d --build
 
@@ -189,121 +202,29 @@ jobs:
         run: |
           docker compose -f docker-compose.ci.yml ps
 
-      - name: Wait for Orchestrator to respond
+      # Ждем готовности оркестратора
+      - name: Wait for Orchestrator
         run: |
           for i in {1..30}; do
             if curl --fail --silent http://localhost:8000/health > /dev/null; then
               echo "Orchestrator is healthy and ready!"
               exit 0
             fi
+
             echo "Waiting for orchestrator..."
             sleep 2
           done
+
           echo "Orchestrator did not become healthy in time"
           docker compose -f docker-compose.ci.yml logs
           exit 1
 
-      - name: Install test packages in runner
-        run: |
-          pip install packages/rag_platform_contracts-*.whl
-          pip install packages/rag_platform_observability-*.whl
-          pip install ./rag-platform-orchestrator
-
-      - name: Install project and test dependencies from requirements.txt
-        run: |
-          pip install -r requirements.txt
-
+      # E2E
       - name: Run E2E smoke tests
         run: |
           pytest tests/e2e/orchestrator/smoke/ -v
 
-      - name: Show Docker logs on failure
-        if: failure()
-        run: |
-          docker compose -f docker-compose.ci.yml logs --no-color
-
-      - name: Stop services
-        if: always()
-        run: |
-          docker compose -f docker-compose.ci.yml down -v
-
-
-  # Быстрый нагрузочный тест
-  load-smoke:
-    name: Load Smoke Test (Locust)
-    runs-on: ubuntu-latest
-    # Запускаем параллельно с e2e или после него. Лучше параллельно, чтобы экономить время CI.
-    # needs: integration-tests 
-    permissions:
-      contents: read
-      packages: read
-    env:
-      ORCHESTRATOR_HOST_PORT: "8000"
-      # Переменные для фейковых сервисов, которые вы упомянули
-      DIRECTOR_SERVICE_URL: "http://0.0.0.0:9000"
-      RESEARCHER_SERVICE_URL: "http://0.0.0.0:9000"
-      ANALYST_SERVICE_URL: "http://0.0.0.0:9000"
-      FINALIZER_SERVICE_URL: "http://0.0.0.0:9000"
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Для запуска Locust нужен Python. Кэширование pip ускорит повторные запуски.
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: 'pip'
-
-      # Ставим сам locust. Проектные зависимости ставить не обязательно, 
-      # так как код оркестратора работает внутри Docker-контейнера!
-      - name: Install Locust
-        run: |
-          python -m pip install --upgrade pip
-          pip install locust
-
-      - name: Create environment files
-        run: |
-          echo "ORCHESTRATOR_HOST_PORT=8000" >> .env
-          echo "PORT=8000" >> .env
-          echo "PROVIDER=mock-provider" >> .env
-          echo "LLM_MODEL=mock-model" >> .env
-          mkdir -p rag-platform-orchestrator
-          echo "PORT=8000" >> ./rag-platform-orchestrator/.env
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Start Orchestrator and Fake Agents
-        run: |
-          docker compose -f docker-compose.ci.yml up -d --build
-
-      - name: Wait for Orchestrator to respond
-        run: |
-          for i in {1..30}; do
-            if curl --fail --silent http://localhost:8000/health > /dev/null; then
-              echo "Orchestrator is healthy and ready!"
-              exit 0
-            fi
-            echo "Waiting for orchestrator..."
-            sleep 2
-          done
-          echo "Orchestrator did not become healthy in time"
-          docker compose -f docker-compose.ci.yml logs
-          exit 1
-
-      # ЗАПУСК LOCUST
-      # --headless: без веб-интерфейса
-      # -u 10: 10 одновременных фейковых пользователей
-      # -r 2: скорость спавна (2 пользователя в секунду)
-      # --run-time 1m: гоняем тест ровно 1 минуту (для CI этого достаточно)
-      # --exit-code-on-error: если Locust поймает хотя бы один response.failure(), джоба упадет
-      #  КОНТРОЛЕМ SLA И ОШИБОК
+      # Load testing
       - name: Run Locust Smoke Test
         run: |
           locust \
@@ -315,11 +236,13 @@ jobs:
             --run-time 1m \
             --exit-code-on-error 1
 
+      # Логи при ошибке
       - name: Show Docker logs on failure
         if: failure()
         run: |
           docker compose -f docker-compose.ci.yml logs --no-color
 
+      # Всегда останавливаем контейнеры
       - name: Stop services
         if: always()
         run: |
