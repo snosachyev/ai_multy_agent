@@ -1,7 +1,10 @@
 services:
 
   orchestrator:
-    image: ghcr.io/snosachyev/rag-platform-orchestrator:latest
+    build:
+      context: .
+      dockerfile: rag-platform-orchestrator/Dockerfile
+    image: rag-orchestrator:ci
     container_name: rag-orchestrator-container
     ports:
       - "${ORCHESTRATOR_HOST_PORT}:${ORCHESTRATOR_HOST_PORT}" 
