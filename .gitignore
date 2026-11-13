@@ -10,6 +10,8 @@ eggs/
 *.egg-info/
 *.egg
 downloads/
+packages/
+*.whl
 
 
 # === Кэш Python и байт-код ===
