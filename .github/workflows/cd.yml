@@ -1,9 +1,9 @@
 
-name: CD Full (Build & Deploy)
+name: CD (Build & Deploy)
 
 on:
   workflow_run:
-    workflows: ["CI Full"]
+    workflows: ["CD"]
     types: [completed]
     branches: [main]
   workflow_dispatch:
