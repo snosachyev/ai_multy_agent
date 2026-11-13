@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: rag-platform-orchestrator/Dockerfile
+      target: runtime
     image: rag-orchestrator:ci
     container_name: rag-orchestrator-container
     ports:
