@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     # вывод логов
     debug_rag: bool = False
 
+    http_timeout_connect: float = 10.0
+    http_timeout_read: float = 300.0
+    http_timeout_write: float = 30.0
+    http_timeout_pool: float = 10.0
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",

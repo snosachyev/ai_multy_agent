@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     # Локально на ПК значение по умолчанию будет "data" (относительный путь).
     data_dir: str = "/data"
 
+    http_timeout_connect: float = 10.0
+    http_timeout_read: float = 300.0
+    http_timeout_write: float = 30.0
+    http_timeout_pool: float = 10.0
+
     @computed_field
     def splits_path(self) -> Path:
         """Возвращает чистый абсолютный путь к файлу сплитов."""

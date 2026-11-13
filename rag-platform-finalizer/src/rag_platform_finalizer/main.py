@@ -24,7 +24,13 @@ async def lifespan(app: FastAPI):
 
     # 1. Создаем единый HTTP-клиент для всего приложения
     # Его можно будет переиспользовать в сервисах через app.state.http_client
-    app.state.http_client = httpx.AsyncClient(timeout=httpx.Timeout(60.0))
+    timeout = httpx.Timeout(
+        connect=settings.http_timeout_connect,
+        read=settings.http_timeout_read,
+        write=settings.http_timeout_write,
+        pool=settings.http_timeout_pool,
+    )
+    app.state.http_client = httpx.AsyncClient(timeout=timeout)
 
     # 2. Проверяем связь с LLM-провайдером
     try:

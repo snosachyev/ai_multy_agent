@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     ollama_base_url: str | None = None
     temperature: float = 0.0
 
+    http_timeout_connect: float = 10.0
+    http_timeout_read: float = 300.0
+    http_timeout_write: float = 30.0
+    http_timeout_pool: float = 10.0
+
     model_config = SettingsConfigDict(
         extra="ignore",
         env_file_encoding="utf-8"

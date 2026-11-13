@@ -24,8 +24,14 @@ async def lifespan(fastapi_app: FastAPI):
     print("🤖 Инициализация RAG Platform Analyst...")
 
     # Открываем единственный глобальный пул соединений
+    timeout = httpx.Timeout(
+        connect=settings.http_timeout_connect,
+        read=settings.http_timeout_read,
+        write=settings.http_timeout_write,
+        pool=settings.http_timeout_pool,
+    )
     async with httpx.AsyncClient(
-        timeout=httpx.Timeout(connect=5.0, read=60.0, write=10.0, pool=10.0)
+        timeout=timeout
     ) as http_client:
 
         # Сохраняем в app.state для ручек /ready или сторонних нужд (опционально)

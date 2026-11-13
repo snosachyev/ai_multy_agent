@@ -24,7 +24,13 @@ async def lifespan(app: FastAPI):
     print("🤖 Инициализация RAG Platform Researcher...")
 
     # 1. Создаем единый HTTP-клиент для всего приложения
-    app.state.http_client = httpx.AsyncClient(timeout=httpx.Timeout(60.0))
+    timeout = httpx.Timeout(
+        connect=settings.http_timeout_connect,
+        read=settings.http_timeout_read,
+        write=settings.http_timeout_write,
+        pool=settings.http_timeout_pool,
+    )
+    app.state.http_client = httpx.AsyncClient(timeout=timeout)
 
     # 2. Инициализируем и прогреваем Chroma Vector Store в памяти один раз
     try:
