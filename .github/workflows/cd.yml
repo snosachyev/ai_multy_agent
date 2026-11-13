@@ -121,6 +121,16 @@ jobs:
           name: cd-python-packages
           path: packages
 
+      - name: Check GHCR permissions
+        run: |
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Actor: $GITHUB_ACTOR"
+          echo "Event: $GITHUB_EVENT_NAME"
+          echo "Token package permission:"
+          gh api /repos/$GITHUB_REPOSITORY/actions/permissions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
