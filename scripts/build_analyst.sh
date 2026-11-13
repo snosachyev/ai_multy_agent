@@ -16,6 +16,8 @@ mkdir -p packages
 
 cp rag-platform-analyst/dist/*.whl packages/
 
-docker build --no-cache -t rag-analyst:latest -f rag-platform-analyst/Dockerfile .
+if [ "${SKIP_DOCKER:-0}" != "1" ]; then
+    docker build --no-cache -t rag-analyst:latest -f rag-platform-analyst/Dockerfile .
+fi
 
 echo "✅ Пакет собран и скопирован в packages/"
