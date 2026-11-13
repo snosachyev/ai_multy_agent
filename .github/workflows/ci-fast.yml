@@ -5,6 +5,7 @@ on:
     branches: [ main ]
   push:
     branches-ignore: [ main ] # Срабатывает на все ветки разработки, кроме main
+  workflow_dispatch: # Добавляет кнопку "Run workflow" во вкладке Actions
 
 env:
   PORT: "8000"
