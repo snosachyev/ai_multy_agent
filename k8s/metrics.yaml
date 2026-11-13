@@ -1,5 +1,5 @@
 # ==========================================
-# 1. ПОСТОЯННЫЕ ДИСКИ (PVC) ДЛЯ БД И GRAFANA
+# 1. ПОСТОЯННЫЕ ДИСКИ (PVC)
 # ==========================================
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -24,7 +24,7 @@ spec:
       storage: 2Gi
 ---
 # ==========================================
-# 2. СЕКРЕТЫ ДОСТУПА (ПАРОЛИ БД И GRAFANA)
+# 2. СЕКРЕТЫ ДОСТУПА
 # ==========================================
 apiVersion: v1
 kind: Secret
@@ -34,12 +34,12 @@ type: Opaque
 stringData:
   POSTGRES_USER: "rag_user"
   POSTGRES_PASSWORD: "rag_secure_password"
-  POSTGRES_DB: "rag_metrics"
+  POSTGRES_DB: "rag_evaluation"
   GF_SECURITY_ADMIN_USER: "admin"
   GF_SECURITY_ADMIN_PASSWORD: "admin_secure_password"
 ---
 # ==========================================
-# 3. POSTGRESQL (ХРАНЕНИЕ ТРЕЙСОВ И ЛОГОВ)
+# 3. POSTGRESQL (С АВТО-ИНИЦИАЛИЗАЦИЕЙ ТАБЛИЦ)
 # ==========================================
 apiVersion: apps/v1
 kind: Deployment
@@ -67,10 +67,15 @@ spec:
         volumeMounts:
         - name: pg-storage
           mountPath: /var/lib/postgresql/data
+        - name: pg-init-scripts
+          mountPath: /docker-entrypoint-initdb.d
       volumes:
       - name: pg-storage
         persistentVolumeClaim:
           claimName: postgres-data-pvc
+      - name: pg-init-scripts
+        configMap:
+          name: postgres-init-scripts
 ---
 apiVersion: v1
 kind: Service
@@ -84,7 +89,7 @@ spec:
     app: postgres-metrics
 ---
 # ==========================================
-# 4. PROMETHEUS (КОНФИГ И СБОР МЕТРИК АГЕНТОВ)
+# 4. PROMETHEUS
 # ==========================================
 apiVersion: v1
 kind: ConfigMap
@@ -99,7 +104,6 @@ data:
       - job_name: 'rag-agents'
         metrics_path: '/metrics'
         static_configs:
-          # В Kubernetes Prometheus стучится по внутренним именам K8s-сервисов
           - targets:
             - 'rag-orchestrator:8000'
             - 'rag-director:8001'
@@ -145,12 +149,12 @@ spec:
   ports:
   - port: 9090
     targetPort: 9090
-    nodePort: 30090 # Внешний порт для проверки таргетов
+    nodePort: 30090
   selector:
     app: prometheus
 ---
 # ==========================================
-# 5. GRAFANA (ДАШБОРДЫ И АВТО-ИСТОЧНИК ДАННЫХ)
+# 5. GRAFANA (С ЖЕСТКИМ UID И ДАШБОРДАМИ ИЗ GIT)
 # ==========================================
 apiVersion: v1
 kind: ConfigMap
@@ -159,6 +163,9 @@ metadata:
 data:
   datasources.yaml: |
     apiVersion: 1
+    deleteDatasources:
+      - name: PostgreSQL
+        orgId: 1
     datasources:
       - name: Prometheus
         type: prometheus
@@ -167,12 +174,13 @@ data:
         isDefault: true
       - name: PostgreSQL
         type: postgres
+        uid: ag3sju97zp43kc
         url: postgres-metrics:5432
         user: rag_user
         secureJsonData:
           password: rag_secure_password
         jsonData:
-          database: rag_metrics
+          database: rag_evaluation
           sslmode: 'disable'
 ---
 apiVersion: apps/v1
@@ -203,6 +211,10 @@ spec:
           mountPath: /var/lib/grafana
         - name: datasources-volume
           mountPath: /etc/grafana/provisioning/datasources
+        - name: dashboards-provider-volume
+          mountPath: /etc/grafana/provisioning/dashboards
+        - name: dashboards-json-volume
+          mountPath: /var/lib/grafana/dashboards
       volumes:
       - name: grafana-storage
         persistentVolumeClaim:
@@ -210,6 +222,12 @@ spec:
       - name: datasources-volume
         configMap:
           name: grafana-datasources
+      - name: dashboards-provider-volume
+        configMap:
+          name: grafana-dashboards-provider
+      - name: dashboards-json-volume
+        configMap:
+          name: grafana-dashboards-json
 ---
 apiVersion: v1
 kind: Service
@@ -220,6 +238,6 @@ spec:
   ports:
   - port: 3000
     targetPort: 3000
-    nodePort: 30300 # Внешний порт для входа в Grafana
+    nodePort: 30300
   selector:
     app: grafana
