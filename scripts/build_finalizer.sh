@@ -16,6 +16,8 @@ mkdir -p packages
 
 cp rag-platform-finalizer/dist/*.whl packages/
 
-docker build --no-cache -t rag-finalizer:latest -f rag-platform-finalizer/Dockerfile .
+if [ "${SKIP_DOCKER:-0}" != "1" ]; then
+    docker build --no-cache -t rag-finalizer:latest -f rag-platform-finalizer/Dockerfile .
+fi
 
 echo "✅ Пакет собран и скопирован в packages/"

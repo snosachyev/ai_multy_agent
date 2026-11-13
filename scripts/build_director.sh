@@ -16,6 +16,8 @@ mkdir -p packages
 
 cp rag-platform-director/dist/*.whl packages/
 
-docker build --no-cache -t rag-director:latest -f rag-platform-director/Dockerfile .
+if [ "${SKIP_DOCKER:-0}" != "1" ]; then
+    docker build --no-cache -t rag-director:latest -f rag-platform-director/Dockerfile .
+fi
 
 echo "✅ Пакет собран и скопирован в packages/"
