@@ -1,0 +1,40 @@
+name: CI Fast (Mocks & Unit)
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches-ignore: [ main ] # Срабатывает на все ветки разработки, кроме main
+
+env:
+  PORT: "8000"
+  PROVIDER: "mock-provider"
+  LLM_MODEL: "mock-model"
+
+jobs:
+  fast-tests:
+    name: Fast Unit & Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: 'pip'
+
+      - name: Install pre-built wheels and dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Берем уже готовые пакеты из репозитория без пересборки
+          pip install packages/*.whl || true
+          pip install -e ./rag-platform-orchestrator
+          pip install -e ./rag-platform-researcher || true
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio anyio httpx
+
+      - name: Run Unit & Integration Tests
+        run: |
+          pytest tests/unit/ tests/integration/ -v
