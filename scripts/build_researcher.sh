@@ -16,6 +16,8 @@ mkdir -p packages
 
 cp rag-platform-researcher/dist/*.whl packages/
 
-docker build --no-cache --target runtime  -t rag-researcher:latest -f rag-platform-researcher/Dockerfile .
+if [ "${SKIP_DOCKER:-0}" != "1" ]; then
+    docker build --no-cache --target runtime  -t rag-researcher:latest -f rag-platform-researcher/Dockerfile .
+fi
 
 echo "✅ Пакет собран и скопирован в packages/"
