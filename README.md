@@ -201,3 +201,9 @@ chmod +x deploy.sh
 ## Для запуска в продакшн-облаке (или через GitHub Actions):
 ./deploy.sh prod
 
+
+# qdrant
+docker pull ghcr.io/qdrant/qdrant/qdrant:v1.20.2
+docker tag ghcr.io/qdrant/qdrant/qdrant:v1.20.2 qdrant/qdrant:latest
+docker compose up -d qdrant
+
