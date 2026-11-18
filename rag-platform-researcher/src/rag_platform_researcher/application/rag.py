@@ -35,6 +35,10 @@ class VectorStorePort(ABC):
     """Порт для взаимодействия с векторным хранилищем документов."""
 
     @abstractmethod
+    def get_available_sources(self) -> list[str]:
+        """Возвращает список доступных идентификаторов источников (для select)."""
+
+    @abstractmethod
     async def search(
         self,
         query: str,
@@ -92,9 +96,16 @@ class RAGService:
         self.query_generator = query_generator
         self.llm = llm
 
+
+    async def get_available_sources(self) -> list[str]:
+        """Запрашивает список доступных источников у порта хранилища."""
+        return await self.vector_store.get_available_sources()
+
+
     async def execute(
         self,
         task: str,
+        source_ids: list[str] | None = None,
     ) -> RAGResult:
         """Инициализирует RAG-сервис необходимыми компонентами и интерфейсами.
 
@@ -163,6 +174,7 @@ class RAGService:
                 retrieved_documents = await self.vector_store.search(
                     query=query,
                     limit=5,
+                    source_ids=source_ids,
                 )
 
                 RAG_RETRIEVED_DOCUMENTS.labels(
@@ -213,7 +225,13 @@ class RAGService:
             documents = list(documents_by_id.values())
 
             if not documents:
-                return "В документах ничего не найдено."
+                return RAGResult(
+                    question=task,
+                    generated_queries=queries,
+                    documents=[],
+                    context="",
+                    answer="В документах по вашему запросу ничего не найдено.",
+                )
 
             # --------------------------------------------------
             # 3. Sort documents by number of matching queries
