@@ -207,3 +207,10 @@ docker pull ghcr.io/qdrant/qdrant/qdrant:v1.20.2
 docker tag ghcr.io/qdrant/qdrant/qdrant:v1.20.2 qdrant/qdrant:latest
 docker compose up -d qdrant
 
+
+# data ingestion
+## qdrant
+    docker compose run --rm ingestion --backend qdrant --file /app/data/chunked.pkl --source-id lilian-weng-agent
+## chroma
+    docker compose run --rm ingestion --backend chroma --file /app/data/chunked.pkl --source-id lilian-weng-agent
+
