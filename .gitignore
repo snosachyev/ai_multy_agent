@@ -16,6 +16,7 @@ downloads/
 __pycache__/
 *.py[cod]
 *$py.class
+packages
 
 # === Виртуальные окружения (Обязательно к исключению) ===
 .venv/
