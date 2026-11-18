@@ -164,12 +164,37 @@ services:
     networks:
       - rag-network
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: rag-qdrant
+    ports:
+      - "6333:6333" # REST API и веб-интерфейс (Dashboard)
+      - "6334:6334" # gRPC API для быстрой загрузки
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - rag-network
+    restart: unless-stopped
+
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: rag-chroma
+    ports:
+      - "8005:8000" # 8000 занят оркестратором, поэтому наружу пробрасываем 8005
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - rag-network
+    restart: unless-stopped
+
 networks:
   rag-network:
-    driver: bridge # Это явно разрешает контейнерам выходить наружу через NAT хоста
+    driver: bridge
     name: rag-network
     external: true
 
 volumes:
-  ollama_data: # Объявляем постоянную папку для моделей
+  ollama_data:
   hf_cache:
+  qdrant_data: # Постоянное хранилище для векторов и чанков
+  chroma_data: # Постоянное хранилище для Chroma
