@@ -1,8 +1,12 @@
 """Researcher serivce config"""
 import os
 from pathlib import Path
+from typing import Literal
 from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+from rag_platform_contracts.vector_store import QDRANT_COLLECTION_NAME
 
 # settings.py лежит в config/, значит .parent.parent — это корень пакета
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
@@ -26,8 +30,13 @@ class Settings(BaseSettings):
     # вывод логов
     debug_rag: bool = False
 
-    splits_file_name: str = "chunked.pkl"
+    # --- Настройки векторного хранилища ---
+    vector_store_type: Literal["qdrant", "chroma"] = "qdrant"
+    qdrant_url: str = "http://qdrant:6333"
+    qdrant_collection: str = QDRANT_COLLECTION_NAME
 
+    # Используются только при vector_store_type="chroma" (для тестов и eval)
+    splits_file_name: str = "chunked.pkl"
     # В Docker сюда прилетит "/data" из docker-compose.yaml. 
     # Локально на ПК значение по умолчанию будет "data" (относительный путь).
     data_dir: str = "/data"
