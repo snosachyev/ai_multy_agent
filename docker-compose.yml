@@ -187,6 +187,19 @@ services:
       - rag-network
     restart: unless-stopped
 
+  ingestion:
+    build:
+      context: .
+      dockerfile: rag-platform-ingestion/Dockerfile
+    profiles: ["etl"]
+    volumes:
+      - ./data:/app/data:ro       # Монтируем вашу локальную папку data
+      - hf_cache:/root/.cache/huggingface # Используем общий кэш моделей!
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+    networks:
+      - rag-network
+
 networks:
   rag-network:
     driver: bridge
