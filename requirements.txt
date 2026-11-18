@@ -1,3 +1,4 @@
+-r requirements-vector.txt
 build==1.6.1
 pip==24.0
 pip-tree==5.0.0
