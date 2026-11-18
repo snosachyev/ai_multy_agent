@@ -127,6 +127,9 @@ The following scopes are recommended examples.
 | `payment-service` | Payment processing service. |
 | `notification-service` | Notification service. |
 | `api-gateway` | API Gateway and request routing. |
+| `researcher` | Researcher service. |
+| `ingestion` | Data ingestion module. |
+
 
 ### 4.2. Infrastructure
 
