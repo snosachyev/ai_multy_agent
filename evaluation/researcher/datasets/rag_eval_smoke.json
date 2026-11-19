@@ -3,7 +3,9 @@
     "id": "task-decomposition-001",
     "question": "What is task decomposition?",
     "relevant_documents": [
-      "doc_task_decomposition_001"
+      "lilian-weng-agent-0002",
+      "lilian-weng-agent-0003",
+      "lilian-weng-agent-0023"
     ],
     "reference_answer": "Task decomposition is the process of breaking a large task into smaller manageable subtasks."
   }
