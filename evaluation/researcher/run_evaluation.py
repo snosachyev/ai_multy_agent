@@ -1,22 +1,27 @@
 """Основной скрипт для автоматизированной оценки (evaluation) качества работы RAG-платформы."""
 
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List
+
 import argparse
 import asyncio
 import json
 import shutil
 import os
 import psycopg
-import uuid
-from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any, Dict, List
 
 
 # Инфраструктура платформы
 from rag_platform_observability.observability import configure_logging, get_logger
 from rag_platform_researcher.config.settings import settings
-from rag_platform_researcher.dependencies import get_llm, get_query_generator, get_rag_service
-from rag_platform_researcher.infrastructure.rag.chroma import ChromaVectorStore
+from rag_platform_researcher.dependencies import (
+    get_llm,
+    get_query_generator,
+    get_rag_service,
+    get_vector_store
+)
 
 # Метрики и утилиты
 from evaluation.common.postgres import get_connection
@@ -141,6 +146,8 @@ async def evaluate_item(item: Dict[str, Any], rag_service: Any, mode: str) -> Di
         Dict[str, Any]: Результаты расчетов метрик для конкретного вопроса.
     """
     question = item["question"]
+    # Опционально, если в датасете появится фильтр по источникам
+    source_ids = item.get("source_ids")
     # Динамически берем топ-K документов из настроек, иначе fallback на 5
     top_k = getattr(settings, "top_k", 5)
 
@@ -148,7 +155,10 @@ async def evaluate_item(item: Dict[str, Any], rag_service: Any, mode: str) -> Di
         logger.debug("\n%s\nQUESTION: %s\n%s", "=" * 80, question, "=" * 80)
 
     # Шаг 1: Выполнение RAG-запроса
-    result = await rag_service.execute(question)
+    result = await rag_service.execute(
+        task=question,
+        source_ids=source_ids,
+    )
 
     retrieved_ids = [document.id for document in result.documents]
     relevant_ids = item["relevant_documents"]
@@ -220,8 +230,8 @@ async def main() -> None:
         len(dataset),
     )
 
-    # Инициализация инфраструктуры и компонентов ядра RAG
-    vector_store = ChromaVectorStore(splits_path=str(settings.splits_path))
+    # 1. Инициализация инфраструктуры через общую фабрику (подхватит Qdrant или Chroma из settings)
+    vector_store = get_vector_store()
     llm = get_llm()
     query_generator = get_query_generator(llm=llm)
 
