@@ -11,6 +11,18 @@ DOCKER_NETWORK="rag-network"
 echo "📦 Запуск evaluation researcher..."
 echo "📁 Project root: $PROJECT_ROOT"
 
+
+# --------------------------------------------------
+# Настройки векторной базы (по умолчанию берем из окружения или ставим qdrant)
+# --------------------------------------------------
+VECTOR_STORE_TYPE="${VECTOR_STORE_TYPE:-qdrant}"
+QDRANT_URL="${QDRANT_URL:-http://qdrant:6333}"
+CHROMA_HOST="${CHROMA_HOST:-chroma}"
+CHROMA_PORT="${CHROMA_PORT:-8000}"
+
+echo "🗄️ Используется векторное хранилище: ${VECTOR_STORE_TYPE}"
+
+
 # --------------------------------------------------
 # Git commit
 # --------------------------------------------------
@@ -70,6 +82,10 @@ echo "📦 Запускаем docker..."
 
 docker run --rm \
     --network "$DOCKER_NETWORK" \
+    -e VECTOR_STORE_TYPE="${VECTOR_STORE_TYPE}" \
+    -e QDRANT_URL="${QDRANT_URL}" \
+    -e CHROMA_HOST="${CHROMA_HOST}" \
+    -e CHROMA_PORT="${CHROMA_PORT}" \
     -e HF_HUB_DISABLE_TELEMETRY=1 \
     -e HF_HUB_ENABLE_HF_TRANSFER=0 \
     -e TRANSFORMERS_OFFLINE=1 \
