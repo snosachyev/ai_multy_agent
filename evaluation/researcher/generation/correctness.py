@@ -4,24 +4,32 @@ import json
 from typing import Any, Dict
 
 _CORRECTNESS_PROMPT = """
-You are evaluating the factual correctness of a RAG answer.
+You are an impartial judge evaluating whether a GENERATED ANSWER correctly conveys the core meaning of a REFERENCE ANSWER.
 
-Compare the generated answer with the reference answer.
+Rules:
+1. Ignore language differences (e.g., English vs Russian).
+2. If the core meaning of the REFERENCE ANSWER is present in the GENERATED ANSWER, the score MUST be 1.0.
+3. Additional correct details (like examples or methods) in the GENERATED ANSWER are completely fine and MUST NOT lower the score.
+4. Give 0.5 ONLY if part of the REFERENCE ANSWER is missing or distorted.
 
-The generated answer does not need to use the exact same wording.
-Equivalent meaning is acceptable.
-
-Return ONLY valid JSON:
-
+Example:
+REFERENCE: "Photosynthesis converts light energy into chemical energy."
+GENERATED: "Фотосинтез — это процесс преобразования световой энергии в химическую. Он происходит в хлоропластах с участием хлорофилла."
+OUTPUT:
 {
-  "score": 0.0,
-  "reason": "short explanation"
+  "matched_facts": ["Photosynthesis converts light energy into chemical energy"],
+  "missing_or_wrong_facts": [],
+  "reason": "The generated answer accurately states the core definition from the reference and adds harmless extra details.",
+  "score": 1.0
 }
 
-Score:
-1.0 = correct
-0.5 = partially correct
-0.0 = incorrect
+Return ONLY valid JSON:
+{
+  "matched_facts": ["..."],
+  "missing_or_wrong_facts": ["..."],
+  "reason": "...",
+  "score": 1.0
+}
 """
 
 
