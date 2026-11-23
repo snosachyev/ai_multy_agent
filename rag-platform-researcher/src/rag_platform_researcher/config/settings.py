@@ -32,6 +32,7 @@ class Settings(BaseSettings):
 
     # --- Настройки векторного хранилища ---
     vector_store_type: Literal["qdrant", "chroma"] = "qdrant"
+    reranker_type: Literal["rrf", "cross_encoder"] = "rrf"
     qdrant_url: str = "http://qdrant:6333"
     qdrant_collection: str = QDRANT_COLLECTION_NAME
 
