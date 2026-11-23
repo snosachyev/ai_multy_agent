@@ -11,6 +11,7 @@ from typing import Literal
 import chromadb
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
+from langchain_core.embeddings import Embeddings
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
@@ -22,6 +23,15 @@ from rag_platform_contracts.vector_store import (
     QDRANT_COLLECTION_NAME,
     DocumentChunkMetadata,
 )
+
+
+def get_embeddings(device: str = "cpu") -> Embeddings:
+    """Создает и возвращает настроенный экземпляр HuggingFaceEmbeddings."""
+    return HuggingFaceEmbeddings(
+        model_name=EMBEDDING_MODEL_NAME,
+        model_kwargs={"device": device},
+        encode_kwargs={"normalize_embeddings": True},
+    )
 
 
 def _load_and_validate_docs(file_path: str, source_id: str) -> list[Document]:
@@ -73,13 +83,11 @@ def run_ingestion(
         chroma_host: Хост сервера ChromaDB.
         chroma_port: Порт сервера ChromaDB.
     """
+    """Валидирует метаданные по контракту и загружает чанки в выбранную векторную БД."""
     validated_docs = _load_and_validate_docs(file_path=file_path, source_id=source_id)
 
-    embeddings = HuggingFaceEmbeddings(
-        model_name=EMBEDDING_MODEL_NAME,
-        model_kwargs={"device": "cpu"},
-        encode_kwargs={"normalize_embeddings": True},
-    )
+    # Используем E5Embeddings с автоматическим префиксом 'passage: '
+    embeddings = get_embeddings(device="cpu")
 
     ids = [
         str(uuid.uuid5(uuid.NAMESPACE_DNS, doc.metadata["document_id"]))
