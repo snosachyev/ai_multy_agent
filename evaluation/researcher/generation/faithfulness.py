@@ -5,27 +5,20 @@ from typing import Any, Dict
 
 # Текст промпта сделан скрытым константным полем и очищен от лишних табов/пробелов слева
 _FAITHFULNESS_PROMPT = """
-You are evaluating a RAG answer.
-
-Your task is to determine whether the answer is fully supported
-by the provided context.
+You are evaluating a RAG answer against the provided context.
 
 Rules:
-- Every factual claim in the answer must be supported by the context.
+- Extract each factual claim from the ANSWER.
+- Check if each claim is supported by the CONTEXT (the answer may be in a different language or paraphrased, focus on semantic equivalence).
 - Do not use outside knowledge.
-- If the answer contains unsupported factual claims, it is not fully faithful.
 
-Return ONLY valid JSON:
-
+Return ONLY valid JSON with keys in this exact order:
 {
-"score": 0.0,
-"reason": "short explanation"
+  "supported_claims": ["list of claims found in context"],
+  "unsupported_claims": ["list of claims NOT found in context"],
+  "reason": "short explanation",
+  "score": <1.0 if all claims supported, 0.5 if some supported, 0.0 if none supported>
 }
-
-Score:
-1.0 = fully supported
-0.5 = partially supported
-0.0 = unsupported
 """
 
 
