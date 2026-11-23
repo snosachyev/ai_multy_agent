@@ -1,12 +1,11 @@
 """Адаптер векторного хранилища Qdrant"""
 from typing import Any
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import AsyncQdrantClient, QdrantClient
 from qdrant_client.http import models
 
-from rag_platform_contracts.vector_store import EMBEDDING_MODEL_NAME
 from rag_platform_researcher.application.rag import VectorStorePort
+from rag_platform_researcher.infrastructure.rag.embeddings import get_embeddings
 
 
 class QdrantVectorStoreAdapter(VectorStorePort):
@@ -14,11 +13,7 @@ class QdrantVectorStoreAdapter(VectorStorePort):
 
     def __init__(self, url: str, collection_name: str):
         self.collection_name = collection_name
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name=EMBEDDING_MODEL_NAME,
-            model_kwargs={"device": "cpu"},
-            encode_kwargs={"normalize_embeddings": True},
-        )
+        self.embeddings = get_embeddings(device="cpu")
         self._sync_client = QdrantClient(url=url)
         self._async_client = AsyncQdrantClient(url=url)
 
