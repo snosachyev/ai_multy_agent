@@ -197,6 +197,8 @@ services:
       - hf_cache:/root/.cache/huggingface # Используем общий кэш моделей!
     environment:
       - QDRANT_URL=http://qdrant:6333
+      - PYTHONUNBUFFERED=1       # Логи сразу идут в терминал без задержки
+      - HF_HUB_OFFLINE=1         # Брать модель строго из hf_cache без сетевых проверок
     networks:
       - rag-network
 
