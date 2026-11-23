@@ -144,7 +144,11 @@
     ./evaluation/run_orchestrator_evaluate.sh 
 
 ## researcher
+## smoke mode
     ./evaluation/run_researcher_evaluate.sh
+### full mode
+    ./evaluation/run_researcher_evaluate.sh --mode=full
+
 
 
 # postgress evaluation
@@ -211,6 +215,17 @@ docker compose up -d qdrant
 # data ingestion
 ## qdrant
     docker compose run --rm ingestion --backend qdrant --file /app/data/chunked.pkl --source-id lilian-weng-agent
+### clean qdrant
+    curl -X DELETE "http://localhost:6333/collections/rag_documents"
 ## chroma
     docker compose run --rm ingestion --backend chroma --file /app/data/chunked.pkl --source-id lilian-weng-agent
+
+# Загрузка модели bge-reranker-base или подобно для другой
+docker run --rm \
+  --entrypoint python \
+  -e PORT=8000 -e PROVIDER=ollama -e LLM_MODEL=qwen2.5:7b \
+  -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
+  researcher-evaluation \
+  -c "from sentence_transformers import CrossEncoder; CrossEncoder('BAAI/bge-reranker-base')"
+
 
