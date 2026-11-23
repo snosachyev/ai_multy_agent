@@ -51,7 +51,7 @@ ENV PYTHONPATH=/app/src
 FROM evaluation-shared-base AS evaluation
 
 # Так как всё уже скопировано и настроено, пишем только команду запуска
-CMD ["python", "-m", "evaluation.researcher.run_evaluation", "--mode", "smoke"]
+ENTRYPOINT ["python", "-m", "evaluation.researcher.run_evaluation"]
 
 
 # =========================================
