@@ -20,6 +20,7 @@ from rag_platform_researcher.dependencies import (
     get_llm,
     get_query_generator,
     get_rag_service,
+    get_reranker,
     get_vector_store
 )
 
@@ -232,12 +233,14 @@ async def main() -> None:
 
     # 1. Инициализация инфраструктуры через общую фабрику (подхватит Qdrant или Chroma из settings)
     vector_store = get_vector_store()
+    reranker = get_reranker()
     llm = get_llm()
     query_generator = get_query_generator(llm=llm)
 
     rag_service = get_rag_service(
         vector_store=vector_store,
         query_generator=query_generator,
+        reranker=reranker,
         llm=llm
     )
 
