@@ -3,14 +3,13 @@ from typing import Any
 
 import chromadb
 from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+
 
 from rag_platform_contracts.vector_store import (
-    EMBEDDING_MODEL_NAME,
     QDRANT_COLLECTION_NAME,
 )
 from rag_platform_researcher.application.rag import VectorStorePort
-
+from rag_platform_researcher.infrastructure.rag.embeddings import get_embeddings
 
 class ChromaVectorStore(
     VectorStorePort,
@@ -25,15 +24,7 @@ class ChromaVectorStore(
     ):
         self.collection_name = collection_name
 
-        embeddings = HuggingFaceEmbeddings(
-            model_name=EMBEDDING_MODEL_NAME,
-            model_kwargs={
-                "device": "cpu",
-            },
-            encode_kwargs={
-                "normalize_embeddings": True,
-            },
-        )
+        self.embeddings = get_embeddings(device="cpu")
 
         self._client = chromadb.HttpClient(
             host=host,
@@ -43,7 +34,7 @@ class ChromaVectorStore(
         self.vectorstore = Chroma(
             client=self._client,
             collection_name=self.collection_name,
-            embedding_function=embeddings,
+            embedding_function=self.embeddings,
         )
 
     async def search(
