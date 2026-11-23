@@ -104,7 +104,8 @@ docker run --rm \
     -v "$REPORTS_DIR:/app/evaluation/researcher/reports" \
     -v "${PROJECT_ROOT}/data:/app/data" \
     -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
-    "$IMAGE_NAME"
+    "$IMAGE_NAME" \
+    "$@"
 
 echo "✅ Evaluation завершён"
 echo "📊 Reports: $REPORTS_DIR"
