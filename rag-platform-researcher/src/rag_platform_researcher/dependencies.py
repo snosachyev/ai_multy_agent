@@ -10,6 +10,7 @@ from rag_platform_researcher.config.settings import settings
 # 2. Бизнес-логика (Порты)
 from rag_platform_researcher.application.rag import (
     RAGService,
+    RerankerPort,
     VectorStorePort,
     QueryGeneratorPort,
 )
@@ -19,6 +20,7 @@ from rag_platform_researcher.application.researcher import ResearcherService
 from rag_platform_researcher.infrastructure.rag.chroma import ChromaVectorStore
 from rag_platform_researcher.infrastructure.rag.qdrant import QdrantVectorStoreAdapter
 from rag_platform_researcher.infrastructure.rag.query_generator import LLMQueryGenerator
+from rag_platform_researcher.infrastructure.rag.rerankers import CrossEncoderReranker, RRFReranker
 
 
 @lru_cache(maxsize=1)
@@ -34,6 +36,14 @@ def get_vector_store() -> VectorStorePort:
         port=settings.chroma_port,
         collection_name=settings.qdrant_collection,
     )
+
+
+@lru_cache(maxsize=1)
+def get_reranker() -> RerankerPort:
+    """Создает и кэширует выбранный реранкер."""
+    if settings.reranker_type == "cross_encoder":
+        return CrossEncoderReranker(model_name="BAAI/bge-reranker-v2-m3", device="cpu")
+    return RRFReranker(k=60)
 
 
 def get_llm() -> BaseChatModel:
@@ -58,12 +68,14 @@ def get_query_generator(llm: BaseChatModel = Depends(get_llm)) -> QueryGenerator
 def get_rag_service(
     vector_store: VectorStorePort = Depends(get_vector_store),
     query_generator: QueryGeneratorPort = Depends(get_query_generator),
+    reranker: RerankerPort = Depends(get_reranker),
     llm: BaseChatModel = Depends(get_llm),
 ) -> RAGService:
     """Зависимость для сборки ядра RAG-логики."""
     return RAGService(
         vector_store=vector_store,
         query_generator=query_generator,
+        reranker=reranker,
         llm=llm,
     )
 
