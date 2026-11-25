@@ -66,7 +66,11 @@ class DirectorClient(ServiceClient):
         start = time.monotonic()
 
         if settings.debug_rag:
-            logger.debug(f"[DIRECTOR CLIENT] POST {self.base_url}/... user_input={user_input!r}")
+            logger.debug(
+                "[DIRECTOR CLIENT] POST %s/... user_input=%r",
+                self.base_url,
+                user_input,
+            )
 
         try:
             response = await self.client.post(
@@ -75,8 +79,9 @@ class DirectorClient(ServiceClient):
             )
         except httpx.ReadTimeout:
             if settings.debug_rag:
-                logger.debug(f"[DIRECTOR CLIENT] ReadTimeout after \
-                                {time.monotonic() - start:.1f}s")
+                logger.debug(
+                    "[DIRECTOR CLIENT] ReadTimeout after %s.1fs", time.monotonic() - start
+                )
             raise
         else:
             response.raise_for_status()
