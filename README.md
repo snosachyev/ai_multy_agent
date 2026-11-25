@@ -12,13 +12,19 @@
 
 # Запросы
 ## Оркестратор
+### получаем источники
+curl -X 'GET' \
+  'http://127.0.0.1:8000/api/v1/workflows/sources' \
+  -H 'accept: */*'
+### задаем вопрос
     curl -X 'POST' \
     'http://127.0.0.1:8000/api/v1/workflows/run' \
     -H 'accept: application/json' \
     -H 'Content-Type: application/json' \
     -d '{
         "user_input": "Узнай в документах, что такое task decomposition для LLM агентов. После этого посчитай: если у нас есть задача, которую агент разбивает на 4 подзадачи, и на каждую подзадачу тратится по 3 вызова API, сколько всего вызовов API сделает система?",
-        "max_iterations": 6
+        "max_iterations": 6,
+        "source_ids": ["lilian-weng-agent"]
     }'
 
 ## Researcher
@@ -138,13 +144,23 @@
     docker build  --no-cache  -f docker/transformer-base.Dockerfile   -t transformer-base:latest   .
     docker build  --no-cache -f docker/rag-python-base.Dockerfile   -t rag-python-base:latest   .
 
+# build orchestrator
+./scripts/build_orchestrator.sh
+## и переименовываем его если не хотим подтягивть из гит репозитория
+docker tag rag-orchestrator:latest ghcr.io/snosachyev/rag-platform-orchestrator:latest
+
+
 # evaluation
 ## orchestrator
     python -m evaluation.orchestrator.run_evaluation --mode smoke --no-db
     ./evaluation/run_orchestrator_evaluate.sh 
 
 ## researcher
+## smoke mode
     ./evaluation/run_researcher_evaluate.sh
+### full mode
+    ./evaluation/run_researcher_evaluate.sh --mode=full
+
 
 
 # postgress evaluation
@@ -200,4 +216,28 @@ chmod +x deploy.sh
 
 ## Для запуска в продакшн-облаке (или через GitHub Actions):
 ./deploy.sh prod
+
+
+# qdrant
+docker pull ghcr.io/qdrant/qdrant/qdrant:v1.20.2
+docker tag ghcr.io/qdrant/qdrant/qdrant:v1.20.2 qdrant/qdrant:latest
+docker compose up -d qdrant
+
+
+# data ingestion
+## qdrant
+    docker compose run --rm ingestion --backend qdrant --file /app/data/chunked.pkl --source-id lilian-weng-agent
+### clean qdrant
+    curl -X DELETE "http://localhost:6333/collections/rag_documents"
+## chroma
+    docker compose run --rm ingestion --backend chroma --file /app/data/chunked.pkl --source-id lilian-weng-agent
+
+# Загрузка модели bge-reranker-base или подобно для другой
+docker run --rm \
+  --entrypoint python \
+  -e PORT=8000 -e PROVIDER=ollama -e LLM_MODEL=qwen2.5:7b \
+  -v "$HOME/.cache/huggingface:/root/.cache/huggingface" \
+  researcher-evaluation \
+  -c "from sentence_transformers import CrossEncoder; CrossEncoder('BAAI/bge-reranker-base')"
+
 

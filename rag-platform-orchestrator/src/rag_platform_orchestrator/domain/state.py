@@ -34,6 +34,9 @@ class AgentState(TypedDict):
 
     current_agent: Optional[str]
 
+    # Фильтр источников для Researcher (если None — поиск по всей базе)
+    source_ids: Optional[list[str]]
+
     # Конкретная задача, которую Director
     # поставил текущему агенту
     current_task: Optional[str]

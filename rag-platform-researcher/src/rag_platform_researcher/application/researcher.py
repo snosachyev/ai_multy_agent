@@ -15,12 +15,19 @@ class ResearcherService:
         """Инициализирует сервис, принимая готовый RAG-движок."""
         self.rag_service = rag_service
 
+    async def get_available_sources(self) -> list[str]:
+        """Возвращает список доступных source_id из векторного хранилища."""
+        return await self.rag_service.get_available_sources()
+
     async def execute(self, request: ResearchRequest) -> ResearchResponse:
         """Принимает контракт запроса, запускает RAG-анализ и 
         гарантирует возврат контракта ответа."""
         try:
             # Передаем задачу в изолированный RAG-сервис
-            result = await self.rag_service.execute(task=request.task)
+            result = await self.rag_service.execute(
+                task=request.task,
+                source_ids=request.source_ids
+            )
 
             return ResearchResponse(
                 workflow_id=request.workflow_id,

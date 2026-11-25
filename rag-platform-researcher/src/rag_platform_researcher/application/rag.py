@@ -35,6 +35,10 @@ class VectorStorePort(ABC):
     """Порт для взаимодействия с векторным хранилищем документов."""
 
     @abstractmethod
+    def get_available_sources(self) -> list[str]:
+        """Возвращает список доступных идентификаторов источников (для select)."""
+
+    @abstractmethod
     async def search(
         self,
         query: str,
@@ -69,6 +73,25 @@ class QueryGeneratorPort(ABC):
         """
 
 
+class RerankerPort(ABC):
+    """Порт для переранжирования и объединения найденных документов."""
+
+    @abstractmethod
+    async def rerank(
+        self,
+        query: str,
+        search_results: list[list[dict[str, Any]]],
+        top_k: int = 5,
+    ) -> list[dict[str, Any]]:
+        """Переранжирует кандидатов из всех подзапросов и возвращает топ-K лучших.
+
+        Args:
+            query: Исходный вопрос пользователя.
+            search_results: Список списков документов (по одному списку на каждый подзапрос).
+            top_k: Сколько лучших документов оставить в финале.
+        """
+
+
 class RAGService:
     """Ядро бизнес-логики RAG (Retrieval-Augmented Generation).
 
@@ -79,6 +102,7 @@ class RAGService:
         self,
         vector_store: VectorStorePort,
         query_generator: QueryGeneratorPort,
+        reranker: RerankerPort,
         llm,
     ) -> None:
         """Инициализирует RAG-сервис необходимыми компонентами и интерфейсами.
@@ -90,11 +114,19 @@ class RAGService:
         """
         self.vector_store = vector_store
         self.query_generator = query_generator
+        self.reranker = reranker
         self.llm = llm
+
+
+    async def get_available_sources(self) -> list[str]:
+        """Запрашивает список доступных источников у порта хранилища."""
+        return await self.vector_store.get_available_sources()
+
 
     async def execute(
         self,
         task: str,
+        source_ids: list[str] | None = None,
     ) -> RAGResult:
         """Инициализирует RAG-сервис необходимыми компонентами и интерфейсами.
 
@@ -151,6 +183,7 @@ class RAGService:
 
             retrieval_start = time.perf_counter()
 
+            all_search_results: list[list[dict[str, Any]]] = []
             # content -> document info
             documents_by_id: dict[str, dict] = {}
 
@@ -163,6 +196,7 @@ class RAGService:
                 retrieved_documents = await self.vector_store.search(
                     query=query,
                     limit=5,
+                    source_ids=source_ids,
                 )
 
                 RAG_RETRIEVED_DOCUMENTS.labels(
@@ -197,6 +231,9 @@ class RAGService:
                             query_index
                         )
 
+                # Сохраняем выдачу этого подзапроса для RRF / Cross-Encoder
+                all_search_results.append(retrieved_documents)
+
             retrieval_duration = (
                 time.perf_counter() - retrieval_start
             )
@@ -213,7 +250,27 @@ class RAGService:
             documents = list(documents_by_id.values())
 
             if not documents:
-                return "В документах ничего не найдено."
+                return RAGResult(
+                    question=task,
+                    generated_queries=queries,
+                    documents=[],
+                    context="",
+                    answer="В документах по вашему запросу ничего не найдено.",
+                )
+
+            # Переранжируем все найденные кандидаты и оставляем финальные топ-5
+            reranked_docs = await self.reranker.rerank(
+                query=task,
+                search_results=all_search_results,
+                top_k=5,
+            )
+            
+            # Восстанавливаем для каждого финального документа его собранный список matched_queries
+            documents = [
+                documents_by_id[doc["id"]]
+                for doc in reranked_docs
+                if doc["id"] in documents_by_id
+            ]
 
             # --------------------------------------------------
             # 3. Sort documents by number of matching queries

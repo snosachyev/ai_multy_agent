@@ -181,10 +181,11 @@ class Workflow:
                 workflow_id=state["workflow_id"],
                 user_input=state["user_input"],
                 task=current_task,
+                source_ids=state.get("source_ids"),
             )
 
             if settings.debug_rag:
-                logger.debug(f"[RESEARCHER RESULT], success={result.success}")
+                logger.debug("[RESEARCHER RESULT], success=%s", result.success)
 
             if not result.result.get('success'):
                 raise RuntimeError(result.error or "Researcher failed")
@@ -209,13 +210,13 @@ class Workflow:
 
         except (httpx.HTTPStatusError, httpx.NetworkError, httpx.TimeoutException) as net_exc:
             error_msg = f"Network error calling researcher: {type(net_exc).__name__}"
-            logger.error(f"[RESEARCHER NODE] {error_msg}", exc_info=True)
+            logger.error("[RESEARCHER NODE] %f",error_msg,  exc_info=True)
             fallback_task = current_task or state["user_input"]
             return self._handle_node_error(state, fallback_task, error_msg, "researcher")
 
         except RuntimeError as biz_exc:
             error_msg = str(biz_exc)
-            logger.warning(f"[RESEARCHER NODE] Business failure: {error_msg}")
+            logger.warning("[RESEARCHER NODE] Business failure: %f", error_msg)
             fallback_task = current_task or state["user_input"]
             return self._handle_node_error(state, fallback_task, error_msg, "researcher")
 
@@ -264,13 +265,13 @@ class Workflow:
 
         except (httpx.HTTPStatusError, httpx.NetworkError, httpx.TimeoutException) as net_exc:
             error_msg = f"Network error calling researcher: {type(net_exc).__name__}"
-            logger.error(f"[RESEARCHER NODE] {error_msg}", exc_info=True)
+            logger.error("[RESEARCHER NODE] %s", error_msg, exc_info=True)
             fallback_task = current_task or state["user_input"]
             return self._handle_node_error(state, fallback_task, error_msg, "analyst")
 
         except RuntimeError as biz_exc:
             error_msg = str(biz_exc)
-            logger.warning(f"[RESEARCHER NODE] Business failure: {error_msg}")
+            logger.warning("[RESEARCHER NODE] Business failure: %s", error_msg)
             fallback_task = current_task or state["user_input"]
             return self._handle_node_error(state, fallback_task, error_msg, "analyst")
 
@@ -328,6 +329,7 @@ class Workflow:
         self,
         user_input: str,
         max_iterations: int,
+        source_ids: list[str] | None = None,
     ):
         """run graph method"""
         workflow_id = str(uuid4())
@@ -336,6 +338,8 @@ class Workflow:
             "workflow_id": workflow_id,
 
             "user_input": user_input,
+
+            "source_ids": source_ids,
 
             "current_agent": None,
 

@@ -6,11 +6,14 @@ import uvicorn
 from fastapi import Depends, FastAPI, HTTPException
 from prometheus_client import make_asgi_app
 
+from chromadb.errors import ChromaError
+from qdrant_client.http.exceptions import UnexpectedResponse
+
 from langchain_core.language_models import BaseChatModel
 from rag_platform_researcher.config.settings import settings
 from rag_platform_researcher.dependencies import (
     get_llm,
-    init_vector_store
+    get_vector_store
 )
 from rag_platform_researcher.presentation.router import router
 
@@ -34,11 +37,19 @@ async def lifespan(app: FastAPI):
 
     # 2. Инициализируем и прогреваем Chroma Vector Store в памяти один раз
     try:
-        print("⏳ Загрузка эмбеддингов и развертывание Chroma в памяти...")
-        init_vector_store(app)
-        print("✅ Векторная база Chroma успешно инициализирована!")
+        print(f"⏳ Загрузка эмбеддингов и подключение к {settings.vector_store_type}...")
+        vector_store = get_vector_store()
+        # Делаем легкий запрос, чтобы сразу убедиться, что сервер БД отвечает
+        await vector_store.get_available_sources()
+        print(f"✅ Векторная база ({settings.vector_store_type}) успешно подключена!")
+    except (UnexpectedResponse, ChromaError, httpx.HTTPError, ConnectionError, OSError) as e:
+        print(f"❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось подключиться к {settings.vector_store_type}: {e}")
+        await app.state.http_client.aclose()
+        raise RuntimeError(
+            f"Vector store ({settings.vector_store_type}) initialization failed"
+        ) from e
     except Exception as e:
-        print(f"❌ КРИТИЧЕСКАЯ ОШИБКА: Не удалось поднять Chroma: {e}")
+        print(f"❌ НЕПРЕДВИДЕННАЯ ОШИБКА при инициализации векторной базы: {e}")
         await app.state.http_client.aclose()
         raise RuntimeError("Vector store initialization failed") from e
 

@@ -13,8 +13,7 @@ dependencies = [
     "langchain-core",
     "langchain-ollama",
     "langchain-openai",
-    "langchain-chroma",
-    "langchain-huggingface",
+    "pydantic",
 ]
 
 [tool.setuptools.packages.find]

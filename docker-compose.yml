@@ -32,6 +32,9 @@ services:
       - "${RESEARCHER_HOST_PORT}:${RESEARCHER_HOST_PORT}" 
     environment:
       - PORT=${RESEARCHER_HOST_PORT}
+      - QDRANT_URL=http://qdrant:6333
+      - PYTHONUNBUFFERED=1
+      - HF_HUB_OFFLINE=1
     env_file:
         - ./.env    
         - ./rag-platform-researcher/.env # Путь к файлу .env относительно docker-compose.yml
@@ -73,6 +76,8 @@ services:
     environment:
       - OLLAMA_DEBUG=1
       - OLLAMA_KEEP_ALIVE=-1
+      - OLLAMA_FLASH_ATTENTION=1
+      - OLLAMA_KV_CACHE_TYPE=q8_0
     deploy:
       resources:
         reservations:
@@ -164,12 +169,52 @@ services:
     networks:
       - rag-network
 
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: rag-qdrant
+    ports:
+      - "6333:6333" # REST API и веб-интерфейс (Dashboard)
+      - "6334:6334" # gRPC API для быстрой загрузки
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - rag-network
+    restart: unless-stopped
+
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: rag-chroma
+    ports:
+      - "8005:8000" # 8000 занят оркестратором, поэтому наружу пробрасываем 8005
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - rag-network
+    restart: unless-stopped
+
+  ingestion:
+    build:
+      context: .
+      dockerfile: rag-platform-ingestion/Dockerfile
+    profiles: ["etl"]
+    volumes:
+      - ./data:/app/data:ro       # Монтируем вашу локальную папку data
+      - hf_cache:/root/.cache/huggingface # Используем общий кэш моделей!
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+      - PYTHONUNBUFFERED=1       # Логи сразу идут в терминал без задержки
+      - HF_HUB_OFFLINE=1         # Брать модель строго из hf_cache без сетевых проверок
+    networks:
+      - rag-network
+
 networks:
   rag-network:
-    driver: bridge # Это явно разрешает контейнерам выходить наружу через NAT хоста
+    driver: bridge
     name: rag-network
     external: true
 
 volumes:
-  ollama_data: # Объявляем постоянную папку для моделей
+  ollama_data:
   hf_cache:
+  qdrant_data: # Постоянное хранилище для векторов и чанков
+  chroma_data: # Постоянное хранилище для Chroma

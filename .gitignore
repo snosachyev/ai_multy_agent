@@ -18,6 +18,7 @@ packages/
 __pycache__/
 *.py[cod]
 *$py.class
+packages/
 
 # === Виртуальные окружения (Обязательно к исключению) ===
 .venv/
@@ -43,6 +44,6 @@ Thumbs.db
 .env
 
 # Игнорируем локальные данные и кэши
-**/data/*.pkl
+**/data/*.*
 **/data/*.bin
 **/reports/*

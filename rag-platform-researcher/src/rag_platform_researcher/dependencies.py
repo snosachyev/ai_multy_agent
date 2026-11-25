@@ -1,4 +1,5 @@
 """Файл dependencies.py для микросервиса Researcher"""
+from functools import lru_cache
 from fastapi import Depends, Request, FastAPI
 from langchain_core.language_models import BaseChatModel
 
@@ -9,6 +10,7 @@ from rag_platform_researcher.config.settings import settings
 # 2. Бизнес-логика (Порты)
 from rag_platform_researcher.application.rag import (
     RAGService,
+    RerankerPort,
     VectorStorePort,
     QueryGeneratorPort,
 )
@@ -16,32 +18,32 @@ from rag_platform_researcher.application.researcher import ResearcherService
 
 # 3. Реальные классы (Адаптеры), которые вы скинули
 from rag_platform_researcher.infrastructure.rag.chroma import ChromaVectorStore
+from rag_platform_researcher.infrastructure.rag.qdrant import QdrantVectorStoreAdapter
 from rag_platform_researcher.infrastructure.rag.query_generator import LLMQueryGenerator
+from rag_platform_researcher.infrastructure.rag.rerankers import CrossEncoderReranker, RRFReranker
 
 
-def init_vector_store(app: FastAPI) -> None:
-    """Инициализирует векторное хранилище один раз при старте приложения и сохраняет в state.
-    Вызывается внутри lifespan в main.py.
-    """
-    # Проверяем физическое наличие файла на диске перед тем как читать его
-    if not settings.splits_path.exists():
-        raise FileNotFoundError(
-            f"❌ КРИТИЧЕСКАЯ ОШИБКА: Файл векторных сплитов не найден по пути: "
-            f"{settings.splits_path.absolute()}. "
-            f"Проверьте монтирование volumes в Docker или наличие файла локально."
+@lru_cache(maxsize=1)
+def get_vector_store() -> VectorStorePort:
+    """Создает и кэширует синглтон векторного хранилища согласно настройкам."""
+    if settings.vector_store_type == "qdrant":
+        return QdrantVectorStoreAdapter(
+            url=settings.qdrant_url,
+            collection_name=settings.qdrant_collection,
         )
+    return ChromaVectorStore(
+        host=settings.chroma_host,
+        port=settings.chroma_port,
+        collection_name=settings.qdrant_collection,
+    )
 
-    # Сохраняем экземпляр базы напрямую в стейт переданного FastAPI-приложения
-    app.state.vector_store = ChromaVectorStore(splits_path=str(settings.splits_path))
 
-
-def get_vector_store(request: Request) -> VectorStorePort:
-    """Достает созданную базу напрямую из стейта запущенного FastAPI приложения.
-    
-    Отрабатывает мгновенно, возвращая уже готовую ссылку из памяти.
-    """
-    # Гарантирует продакшен-изоляцию: объект живет ровно столько, сколько живет инстанс приложения
-    return request.app.state.vector_store
+@lru_cache(maxsize=1)
+def get_reranker() -> RerankerPort:
+    """Создает и кэширует выбранный реранкер."""
+    if settings.reranker_type == "cross_encoder":
+        return CrossEncoderReranker(model_name="BAAI/bge-reranker-v2-m3", device="cpu")
+    return RRFReranker(k=60)
 
 
 def get_llm() -> BaseChatModel:
@@ -66,12 +68,14 @@ def get_query_generator(llm: BaseChatModel = Depends(get_llm)) -> QueryGenerator
 def get_rag_service(
     vector_store: VectorStorePort = Depends(get_vector_store),
     query_generator: QueryGeneratorPort = Depends(get_query_generator),
+    reranker: RerankerPort = Depends(get_reranker),
     llm: BaseChatModel = Depends(get_llm),
 ) -> RAGService:
     """Зависимость для сборки ядра RAG-логики."""
     return RAGService(
         vector_store=vector_store,
         query_generator=query_generator,
+        reranker=reranker,
         llm=llm,
     )
 
