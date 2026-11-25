@@ -10,3 +10,4 @@ class LLMConfig:
     temperature: float = 0
     base_url: str | None = None
     api_key: str | None = None
+    num_ctx: int = 2048
