@@ -32,6 +32,9 @@ services:
       - "${RESEARCHER_HOST_PORT}:${RESEARCHER_HOST_PORT}" 
     environment:
       - PORT=${RESEARCHER_HOST_PORT}
+      - QDRANT_URL=http://qdrant:6333
+      - PYTHONUNBUFFERED=1
+      - HF_HUB_OFFLINE=1
     env_file:
         - ./.env    
         - ./rag-platform-researcher/.env # Путь к файлу .env относительно docker-compose.yml
@@ -73,6 +76,8 @@ services:
     environment:
       - OLLAMA_DEBUG=1
       - OLLAMA_KEEP_ALIVE=-1
+      - OLLAMA_FLASH_ATTENTION=1
+      - OLLAMA_KV_CACHE_TYPE=q8_0
     deploy:
       resources:
         reservations:
