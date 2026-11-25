@@ -8,3 +8,4 @@ pytest-env==1.8.5
 prometheus_client==0.26.0
 fastapi==0.162.0
 asgi-lifespan==2.1.0
+sentence_transformers==6.3.0
