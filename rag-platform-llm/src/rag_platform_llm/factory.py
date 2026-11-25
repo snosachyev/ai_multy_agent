@@ -14,6 +14,7 @@ def create_llm(config: LLMConfig) -> BaseChatModel:
             base_url=config.base_url,
             model=config.model,
             temperature=config.temperature,
+            num_ctx=config.num_ctx,
         )
 
     if config.provider == "openai":
