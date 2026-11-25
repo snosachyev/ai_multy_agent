@@ -12,13 +12,19 @@
 
 # Запросы
 ## Оркестратор
+### получаем источники
+curl -X 'GET' \
+  'http://127.0.0.1:8000/api/v1/workflows/sources' \
+  -H 'accept: */*'
+### задаем вопрос
     curl -X 'POST' \
     'http://127.0.0.1:8000/api/v1/workflows/run' \
     -H 'accept: application/json' \
     -H 'Content-Type: application/json' \
     -d '{
         "user_input": "Узнай в документах, что такое task decomposition для LLM агентов. После этого посчитай: если у нас есть задача, которую агент разбивает на 4 подзадачи, и на каждую подзадачу тратится по 3 вызова API, сколько всего вызовов API сделает система?",
-        "max_iterations": 6
+        "max_iterations": 6,
+        "source_ids": ["lilian-weng-agent"]
     }'
 
 ## Researcher
@@ -137,6 +143,12 @@
 # build base docker
     docker build  --no-cache  -f docker/transformer-base.Dockerfile   -t transformer-base:latest   .
     docker build  --no-cache -f docker/rag-python-base.Dockerfile   -t rag-python-base:latest   .
+
+# build orchestrator
+./scripts/build_orchestrator.sh
+## и переименовываем его если не хотим подтягивть из гит репозитория
+docker tag rag-orchestrator:latest ghcr.io/snosachyev/rag-platform-orchestrator:latest
+
 
 # evaluation
 ## orchestrator
