@@ -19,6 +19,7 @@ def make_state():
         base_state = {
             "workflow_id": "test-workflow",
             "user_input": "Что такое RAG?",
+            "source_ids": None,
             "current_agent": None,
             "current_task": "Проанализируй найденную информацию",
             "next_action": "researcher",
