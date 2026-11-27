@@ -119,4 +119,37 @@ async def test_researcher_node_uses_current_task(workflow_fixture, make_state):
         workflow_id="test-workflow",
         user_input="Что такое RAG?",
         task="Найди информацию о RAG",
+        source_ids=None,
+    )
+
+
+@pytest.mark.anyio
+async def test_researcher_node_forwards_source_ids(workflow_fixture, make_state):
+    """Проверяет, что узел ресерчера корректно пробрасывает список source_ids из стейта."""
+    workflow_fixture.researcher.execute = AsyncMock(
+        return_value=Mock(
+            success=True,
+            result={
+                "success": True,
+                "result": {
+                    "answer": "Ответ по выбранному источнику",
+                },
+            },
+            error=None,
+        )
+    )
+
+    target_sources = ["alice-in-wonderland", "lilian-weng-agent"]
+    state = make_state(
+        current_task="Кто такой Чеширский Кот?",
+        source_ids=target_sources,
+    )
+
+    await workflow_fixture.researcher_node(state)
+
+    workflow_fixture.researcher.execute.assert_called_once_with(
+        workflow_id="test-workflow",
+        user_input="Что такое RAG?",
+        task="Кто такой Чеширский Кот?",
+        source_ids=target_sources,
     )

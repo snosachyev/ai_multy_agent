@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from rag_platform_researcher.application.rag import RAGService
+from rag_platform_researcher.infrastructure.rag.rerankers import RRFReranker
 
 
 # =====================================================================
@@ -41,25 +42,23 @@ class FakeVectorStore:
     Имитирует семантический поиск по базе данных без реального подключения к ней.
     """
 
-    async def search(self, query: str, limit: int = 5) -> list[dict]:
-        """Имитирует поиск документов по вектору запроса.
-
-        Args:
-            query: Текстовый поисковый запрос.
-            limit: Максимальное количество возвращаемых документов.
-
-        Returns:
-            list[dict]: Список словарей, представляющих найденные документы.
-        """
-        # Используем переданный query и limit для динамического формирования ответа
+    async def search(
+        self,
+        query: str,
+        limit: int = 5,
+        source_ids: list[str] | None = None,
+    ) -> list[dict]:
         return [
             {
                 "id": f"doc-{i}",
-                "content": f"""Найденный контекст по запросу '{query}'
-                (позиция {i}). RAG объединяет поиск и генерацию.""",
-                "metadata": {"limit_applied": limit},
+                "content": f"""Найденный контекст по запросу '{query}' (позиция {i}).
+                RAG объединяет поиск и генерацию.""",
+                "metadata": {
+                    "limit_applied": limit,
+                    "source_id": source_ids[0] if source_ids else "default-source",
+                },
             }
-            for i in range(1, min(limit, 2) + 1)  # Генерируем документы на основе лимита
+            for i in range(1, min(limit, 2) + 1)
         ]
 
 
@@ -100,5 +99,6 @@ def rag_service(mock_llm):
     return RAGService(
         vector_store=FakeVectorStore(),
         query_generator=FakeQueryGenerator(),
+        reranker=RRFReranker(),
         llm=mock_llm,
     )

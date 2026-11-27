@@ -216,7 +216,7 @@ class Workflow:
 
         except RuntimeError as biz_exc:
             error_msg = str(biz_exc)
-            logger.warning("[RESEARCHER NODE] Business failure: %f", error_msg)
+            logger.warning("[RESEARCHER NODE] Business failure: %s", error_msg)
             fallback_task = current_task or state["user_input"]
             return self._handle_node_error(state, fallback_task, error_msg, "researcher")
 
